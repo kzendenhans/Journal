@@ -22,7 +22,7 @@
           <div class="date-sub" id="checkin-date"></div>
         </div>
         <div class="date-nav">
-          <button class="theme-btn" id="theme-toggle" title="Dag/nacht">☀</button>
+          <button class="theme-btn theme-toggle-btn" id="theme-toggle" title="Dag/nacht">○</button>
           <button class="date-nav-btn" id="date-prev" title="Vorige dag">‹</button>
           <button class="date-nav-btn" id="date-next" title="Volgende dag">›</button>
         </div>
@@ -122,7 +122,10 @@
     <section id="screen-tasks" class="screen">
       <div class="screen-header">
         <h1>Taken</h1>
-        <button class="add-btn" id="add-task-btn" title="Taak toevoegen">+</button>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="theme-btn theme-toggle-btn" title="Dag/nacht">○</button>
+          <button class="add-btn" id="add-task-btn" title="Taak toevoegen">+</button>
+        </div>
       </div>
       <div id="tasks-content">
         <div class="loading"><div class="spinner"></div>Laden…</div>
@@ -133,6 +136,7 @@
     <section id="screen-insights" class="screen">
       <div class="screen-header">
         <h1>Inzichten</h1>
+        <button class="theme-btn theme-toggle-btn" title="Dag/nacht">○</button>
       </div>
 
       <div class="period-selector">
@@ -162,6 +166,7 @@
     <section id="screen-settings" class="screen">
       <div class="screen-header">
         <h1>Instellingen</h1>
+        <button class="theme-btn theme-toggle-btn" title="Dag/nacht">○</button>
       </div>
 
       <div class="settings-section">

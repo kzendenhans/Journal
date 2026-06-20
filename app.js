@@ -14,7 +14,7 @@ const cfg = {
 const state = {
   date: todayStr(),          // YYYY-MM-DD
   entry: {},                 // current habit entry values
-  sleep: 7.5,
+  sleep: 8.0,
   weight: null,
   mood: null,
   emotions: {},
@@ -205,7 +205,7 @@ function renderCheckin() {
 async function loadCheckinForDate(dateStr) {
   state.date = dateStr;
   state.entry = {};
-  state.sleep = 7.5;
+  state.sleep = 8.0;
   state.weight = null;
   state.mood = null;
   state.emotions = {};
@@ -226,7 +226,7 @@ async function loadCheckinForDate(dateStr) {
         'tijd_met_anderen','gespeeld','te_veel_weinig_eten','gedoomscrolled',
         'gemasturbeerd','porno_gekeken'];
       boolKeys.forEach(k => { if (row[k]) state.entry[k] = true; });
-      state.sleep = row.slaap !== null ? +row.slaap : 7.5;
+      state.sleep = row.slaap !== null ? +row.slaap : 8.0;
       state.weight = row.gewicht !== null ? +row.gewicht : null;
       state.mood = row.mood_emoji || null;
       ['blij','bang','boos','verdrietig'].forEach(k => {
@@ -515,6 +515,30 @@ async function loadInsights() {
   }
 }
 
+function lineChartHtml(vals, color, unit) {
+  if (vals.length < 2) return `<p style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:8px 0">Te weinig data</p>`;
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const spread = max - min || 0.1;
+  const W = 280, H = 64, pX = 4, pY = 8;
+  const pts = vals.map((v, i) => {
+    const x = (pX + (i / (vals.length - 1)) * (W - 2 * pX)).toFixed(1);
+    const y = (pY + (1 - (v - min) / spread) * (H - 2 * pY)).toFixed(1);
+    return [x, y];
+  });
+  const linePoints = pts.map(p => p.join(',')).join(' ');
+  const areaPath = `M${pts[0][0]},${H} ` + pts.map(p => `L${p[0]},${p[1]}`).join(' ') + ` L${pts[pts.length-1][0]},${H} Z`;
+  return `
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block">
+      <path d="${areaPath}" fill="${color}" opacity="0.1"/>
+      <polyline points="${linePoints}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </svg>
+    <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-muted);margin-top:6px">
+      <span>${min.toFixed(1)} ${unit}</span>
+      <span>${max.toFixed(1)} ${unit}</span>
+    </div>`;
+}
+
 function renderInsights(rows, allRows, from, to, period) {
   if (!rows.length) {
     document.getElementById('insights-content').innerHTML = `<div class="empty">Nog geen data voor deze periode.</div>`;
@@ -592,25 +616,25 @@ function renderInsights(rows, allRows, from, to, period) {
 
   const streakHtml = freqHtml;
 
-  // ── Completion rates ──
+  // ── Completion rates (count / periode) ──
   function barHtml(k, cls) {
     const count = dataRows.filter(r => r[k]).length;
-    const pct = n ? Math.round(count / n * 100) : 0;
+    const pct = Math.min(100, Math.round(count / goalBaseDays * 100));
     return `
       <div class="habit-bar-row">
         <div class="habit-bar-label">${labels[k]}</div>
         <div class="habit-bar-track"><div class="habit-bar-fill ${cls}" style="width:${pct}%"></div></div>
-        <div class="habit-bar-pct">${pct}%</div>
+        <div class="habit-bar-pct">${count}/${goalBaseDays}</div>
       </div>`;
   }
 
-  const essentialBars = essentials.map(k => barHtml(k, 'essential')).join('');
-  const bonusBars     = bonuses.map(k    => barHtml(k, '')).join('');
-  const badBars       = bad.map(k        => barHtml(k, 'bad')).join('');
+  const bonusBars = bonuses.map(k => barHtml(k, '')).join('');
+  const badBars   = bad.map(k    => barHtml(k, 'bad')).join('');
 
-  // ── Gemiddelden ──
-  const sleepVals  = dataRows.filter(r => r.slaap).map(r => +r.slaap);
-  const weightVals = dataRows.filter(r => r.gewicht).map(r => +r.gewicht);
+  // ── Gemiddelden + grafiekdata ──
+  const sortedRows  = [...dataRows].sort((a, b) => a.date < b.date ? -1 : 1);
+  const sleepVals   = sortedRows.filter(r => r.slaap   != null).map(r => +r.slaap);
+  const weightVals  = sortedRows.filter(r => r.gewicht != null).map(r => +r.gewicht);
   const avg = arr => arr.length ? (arr.reduce((a,b) => a+b, 0) / arr.length).toFixed(1) : '–';
   const avgSleep  = avg(sleepVals);
   const avgWeight = avg(weightVals);
@@ -653,11 +677,6 @@ function renderInsights(rows, allRows, from, to, period) {
     </div>
 
     <div class="insight-card">
-      <h3>Essentials — ${periodLabel}</h3>
-      ${essentialBars}
-    </div>
-
-    <div class="insight-card">
       <h3>Bonussen — ${periodLabel}</h3>
       ${bonusBars}
     </div>
@@ -676,7 +695,7 @@ function renderInsights(rows, allRows, from, to, period) {
       <h3>Gemiddelden — ${periodLabel}</h3>
       <div class="stats-row">
         <div class="stat-box">
-          <div class="stat-label">Slaap</div>
+          <div class="stat-label">Slaap gem.</div>
           <div class="stat-value">${avgSleep}</div>
           <div class="stat-unit">uur/nacht</div>
         </div>
@@ -691,6 +710,16 @@ function renderInsights(rows, allRows, from, to, period) {
           <div class="stat-unit">kg</div>
         </div>
       </div>
+    </div>
+
+    <div class="insight-card">
+      <h3>Slaap — ${periodLabel}</h3>
+      ${lineChartHtml(sleepVals, 'var(--accent)', 'u')}
+    </div>
+
+    <div class="insight-card">
+      <h3>Gewicht — ${periodLabel}</h3>
+      ${lineChartHtml(weightVals, 'var(--success)', 'kg')}
     </div>
   `;
 }
@@ -828,11 +857,13 @@ function initListeners() {
     });
   });
 
-  // Theme toggle
-  document.getElementById('theme-toggle').addEventListener('click', () => {
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    localStorage.setItem('theme_override_hour', new Date().getHours());
-    applyTheme(!isDark);
+  // Theme toggle (all screens)
+  document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      localStorage.setItem('theme_override_hour', new Date().getHours());
+      applyTheme(!isDark);
+    });
   });
 
   // Add task button
@@ -852,7 +883,7 @@ function isDayTime() {
 
 function applyTheme(dark) {
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-  document.getElementById('theme-toggle').textContent = dark ? '☽' : '☀';
+  document.querySelectorAll('.theme-toggle-btn').forEach(b => { b.textContent = dark ? '●' : '○'; });
   const meta = document.getElementById('theme-color-meta');
   if (meta) meta.content = dark ? '#111110' : '#f6f3ee';
   localStorage.setItem('theme_override', dark ? 'dark' : 'light');

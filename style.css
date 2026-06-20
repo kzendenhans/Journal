@@ -613,9 +613,10 @@ textarea::placeholder { color: var(--text-muted); }
 .habit-bar-pct {
   font-size: 0.75rem;
   color: var(--text-muted);
-  width: 32px;
+  width: 52px;
   text-align: right;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* ── Mood distribution ── */
