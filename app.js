@@ -487,11 +487,18 @@ function renderInsights(rows) {
     geleest:'Gelezen', gemediteerd:'Gemediteerd', tijd_met_anderen:'Sociaal', gespeeld:'Gespeeld'
   };
 
-  // Streaks
+  // Streaks — sla vandaag over als die nog leeg is
+  const boolKeys = ['gym','gewerkt','geklust','geschreven','geleest','gemediteerd',
+    'tijd_met_anderen','gespeeld','te_veel_weinig_eten','gedoomscrolled','gemasturbeerd','porno_gekeken'];
+  const todayEmpty = row => boolKeys.every(k => !row[k]) && !row.slaap && !row.gewicht;
+  const streakRows = rows[0] && rows[0].date === todayStr() && todayEmpty(rows[0])
+    ? rows.slice(1)
+    : rows;
+
   const streaks = {};
   [...essentials, ...bonuses].forEach(k => {
     let streak = 0;
-    for (const row of rows) {
+    for (const row of streakRows) {
       if (row[k]) streak++;
       else break;
     }
@@ -507,7 +514,7 @@ function renderInsights(rows) {
   `).join('');
 
   // Mood last 7 days
-  const last7 = rows.slice(0, 7).reverse();
+  const last7 = streakRows.slice(0, 7).reverse();
   const moodDays = last7.map(r => {
     const d = new Date(r.date);
     const dayNames = ['zo','ma','di','wo','do','vr','za'];
@@ -519,8 +526,8 @@ function renderInsights(rows) {
     `;
   }).join('');
 
-  // Weekly habit completion (last 7 days)
-  const weekRows = rows.slice(0, 7);
+  // Weekly habit completion (last 7 days, vandaag overgeslagen als leeg)
+  const weekRows = streakRows.slice(0, 7);
   const weekGrids = essentials.map(k => {
     const cells = weekRows.map(r =>
       `<div class="week-cell ${r[k] ? 'done' : ''}"></div>`
