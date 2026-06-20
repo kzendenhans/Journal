@@ -32,6 +32,30 @@
         <strong>Setup vereist</strong> — Voeg je Supabase URL en API-sleutel toe via <a href="#" onclick="showSettings()" style="color:var(--primary)">Instellingen</a>.
       </div>
 
+      <!-- Slaap -->
+      <div class="habit-section">
+        <h2>Slaap</h2>
+        <div class="sleep-row">
+          <div class="sleep-controls">
+            <button class="sleep-btn" id="sleep-minus">−</button>
+            <div>
+              <div class="sleep-value" id="sleep-value">7.5</div>
+              <div class="sleep-label">uur</div>
+            </div>
+            <button class="sleep-btn" id="sleep-plus">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gewicht -->
+      <div class="habit-section">
+        <h2>Gewicht</h2>
+        <div class="weight-row">
+          <input type="number" id="weight-input" placeholder="—" step="0.1" min="40" max="200">
+          <span class="weight-unit">kg</span>
+        </div>
+      </div>
+
       <!-- Essentials -->
       <div class="habit-section">
         <h2>Essentials</h2>
@@ -62,30 +86,6 @@
           <button class="habit-btn bad" data-key="gedoomscrolled"><span class="habit-check"></span>Gedoomscrolled</button>
           <button class="habit-btn bad" data-key="gemasturbeerd"><span class="habit-check"></span>Gemasturbeerd</button>
           <button class="habit-btn bad" data-key="porno_gekeken"><span class="habit-check"></span>Porno gekeken</button>
-        </div>
-      </div>
-
-      <!-- Slaap -->
-      <div class="habit-section">
-        <h2>Slaap</h2>
-        <div class="sleep-row">
-          <div class="sleep-controls">
-            <button class="sleep-btn" id="sleep-minus">−</button>
-            <div>
-              <div class="sleep-value" id="sleep-value">7.5</div>
-              <div class="sleep-label">uur</div>
-            </div>
-            <button class="sleep-btn" id="sleep-plus">+</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Gewicht -->
-      <div class="habit-section">
-        <h2>Gewicht</h2>
-        <div class="weight-row">
-          <input type="number" id="weight-input" placeholder="—" step="0.1" min="40" max="200">
-          <span class="weight-unit">kg</span>
         </div>
       </div>
 
