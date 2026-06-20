@@ -133,8 +133,9 @@ main {
   background: var(--bg);
   border-top: 1px solid var(--border);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-around;
+  padding-bottom: env(safe-area-inset-bottom);
   z-index: 100;
   transition: background 0.4s;
 }
@@ -148,9 +149,7 @@ main {
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  height: var(--nav-h);
-  padding: 0 16px;
-  justify-content: center;
+  padding: 6px 16px;
   -webkit-tap-highlight-color: transparent;
   transition: color 0.2s;
 }
