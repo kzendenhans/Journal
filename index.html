@@ -134,6 +134,24 @@
       <div class="screen-header">
         <h1>Inzichten</h1>
       </div>
+
+      <div class="period-selector">
+        <button class="period-btn active" data-period="7">7 dagen</button>
+        <button class="period-btn" data-period="30">Maand</button>
+        <button class="period-btn" data-period="90">3 maanden</button>
+        <button class="period-btn" data-period="180">6 maanden</button>
+        <button class="period-btn" data-period="custom">Aangepast</button>
+      </div>
+
+      <div id="custom-range" style="display:none; margin-bottom:16px; display:none">
+        <div style="display:flex; gap:8px; align-items:center">
+          <input type="date" id="range-from" style="flex:1; background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:8px 10px; font-family:inherit; font-size:0.85rem;">
+          <span style="color:var(--text-muted); font-size:0.85rem">t/m</span>
+          <input type="date" id="range-to" style="flex:1; background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:8px 10px; font-family:inherit; font-size:0.85rem;">
+          <button onclick="loadInsights()" style="background:var(--accent); border:none; border-radius:8px; color:white; padding:8px 12px; font-size:0.85rem; cursor:pointer;">↩</button>
+        </div>
+      </div>
+
       <div id="insights-content">
         <div class="loading"><div class="spinner"></div>Laden…</div>
       </div>

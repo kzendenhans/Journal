@@ -464,116 +464,153 @@ async function loadInsights() {
 
   container.innerHTML = `<div class="loading"><div class="spinner"></div>Laden…</div>`;
 
+  // Determine date range from active period button
+  const activePeriod = document.querySelector('.period-btn.active');
+  const period = activePeriod ? activePeriod.dataset.period : '7';
+  let from, to;
+  to = todayStr();
+
+  if (period === 'custom') {
+    from = document.getElementById('range-from').value || offsetDate(todayStr(), -6);
+    to   = document.getElementById('range-to').value   || todayStr();
+  } else {
+    from = offsetDate(todayStr(), -(+period - 1));
+  }
+
   try {
-    // Last 30 days
-    const from = offsetDate(todayStr(), -29);
-    const rows = await sbFetch(`/habit_entries?date=gte.${from}&order=date.desc&limit=30`);
-    renderInsights(rows || []);
+    const rows = await sbFetch(`/habit_entries?date=gte.${from}&date=lte.${to}&order=date.desc&limit=500`);
+    renderInsights(rows || [], from, to, period);
   } catch(e) {
     container.innerHTML = `<div class="empty">⚠ Kan data niet laden.</div>`;
   }
 }
 
-function renderInsights(rows) {
+function renderInsights(rows, from, to, period) {
   if (!rows.length) {
-    document.getElementById('insights-content').innerHTML = `<div class="empty">Nog geen data.</div>`;
+    document.getElementById('insights-content').innerHTML = `<div class="empty">Nog geen data voor deze periode.</div>`;
     return;
   }
 
   const essentials = ['gym','gewerkt','geklust','geschreven'];
-  const bonuses = ['geleest','gemediteerd','tijd_met_anderen','gespeeld'];
+  const bonuses    = ['geleest','gemediteerd','tijd_met_anderen','gespeeld'];
+  const bad        = ['te_veel_weinig_eten','gedoomscrolled','gemasturbeerd','porno_gekeken'];
   const labels = {
     gym:'Gym', gewerkt:'Gewerkt', geklust:'Geklust', geschreven:'Geschreven',
-    geleest:'Gelezen', gemediteerd:'Gemediteerd', tijd_met_anderen:'Sociaal', gespeeld:'Gespeeld'
+    geleest:'Gelezen', gemediteerd:'Gemediteerd', tijd_met_anderen:'Sociaal', gespeeld:'Gespeeld',
+    te_veel_weinig_eten:'Te veel/weinig', gedoomscrolled:'Doomscroll', gemasturbeerd:'Masturb.', porno_gekeken:'Porno'
   };
 
-  // Streaks — sla vandaag over als die nog leeg is
-  const boolKeys = ['gym','gewerkt','geklust','geschreven','geleest','gemediteerd',
-    'tijd_met_anderen','gespeeld','te_veel_weinig_eten','gedoomscrolled','gemasturbeerd','porno_gekeken'];
-  const todayEmpty = row => boolKeys.every(k => !row[k]) && !row.slaap && !row.gewicht;
-  const streakRows = rows[0] && rows[0].date === todayStr() && todayEmpty(rows[0])
-    ? rows.slice(1)
-    : rows;
+  // Skip today if empty
+  const boolKeys = [...essentials, ...bonuses, ...bad];
+  const todayEmpty = r => boolKeys.every(k => !r[k]) && !r.slaap && !r.gewicht && !r.mood_emoji;
+  const dataRows = rows[0] && rows[0].date === todayStr() && todayEmpty(rows[0]) ? rows.slice(1) : rows;
+  const n = dataRows.length;
 
+  // ── Streaks (altijd huidig, niet periode-afhankelijk) ──
   const streaks = {};
   [...essentials, ...bonuses].forEach(k => {
-    let streak = 0;
-    for (const row of streakRows) {
-      if (row[k]) streak++;
-      else break;
-    }
-    streaks[k] = streak;
+    let s = 0;
+    for (const r of dataRows) { if (r[k]) s++; else break; }
+    streaks[k] = s;
   });
 
   const streakHtml = essentials.map(k => `
     <div class="streak-item">
       <div class="streak-name">${labels[k]}</div>
       <div class="streak-count">${streaks[k]}</div>
-      <div class="streak-label">dagen op rij</div>
+      <div class="streak-label">op rij</div>
     </div>
   `).join('');
 
-  // Mood last 7 days
-  const last7 = streakRows.slice(0, 7).reverse();
-  const moodDays = last7.map(r => {
-    const d = new Date(r.date);
-    const dayNames = ['zo','ma','di','wo','do','vr','za'];
+  // ── Completion rates ──
+  function barHtml(k, cls) {
+    const count = dataRows.filter(r => r[k]).length;
+    const pct = n ? Math.round(count / n * 100) : 0;
     return `
-      <div class="mood-day">
-        <div class="mood-day-emoji">${r.mood_emoji || '·'}</div>
-        <div class="mood-day-label">${dayNames[d.getDay()]}</div>
+      <div class="habit-bar-row">
+        <div class="habit-bar-label">${labels[k]}</div>
+        <div class="habit-bar-track"><div class="habit-bar-fill ${cls}" style="width:${pct}%"></div></div>
+        <div class="habit-bar-pct">${pct}%</div>
+      </div>`;
+  }
+
+  const essentialBars = essentials.map(k => barHtml(k, 'essential')).join('');
+  const bonusBars     = bonuses.map(k    => barHtml(k, '')).join('');
+  const badBars       = bad.map(k        => barHtml(k, 'bad')).join('');
+
+  // ── Gemiddelden ──
+  const sleepVals  = dataRows.filter(r => r.slaap).map(r => +r.slaap);
+  const weightVals = dataRows.filter(r => r.gewicht).map(r => +r.gewicht);
+  const avg = arr => arr.length ? (arr.reduce((a,b) => a+b, 0) / arr.length).toFixed(1) : '–';
+  const avgSleep  = avg(sleepVals);
+  const avgWeight = avg(weightVals);
+  const minWeight = weightVals.length ? Math.min(...weightVals).toFixed(1) : '–';
+  const maxWeight = weightVals.length ? Math.max(...weightVals).toFixed(1) : '–';
+
+  // ── Stemming ──
+  const moodEmojis = ['😄','🙂','😐','🙁','😩'];
+  const moodCounts = {};
+  moodEmojis.forEach(e => { moodCounts[e] = 0; });
+  dataRows.forEach(r => { if (r.mood_emoji && moodCounts[r.mood_emoji] !== undefined) moodCounts[r.mood_emoji]++; });
+  const maxMood = Math.max(...Object.values(moodCounts), 1);
+  const moodHtml = moodEmojis.map(e => `
+    <div class="mood-dist-col">
+      <div class="mood-dist-bar-wrap">
+        <div class="mood-dist-bar" style="height:${Math.round(moodCounts[e] / maxMood * 48)}px"></div>
       </div>
-    `;
-  }).join('');
+      <div class="mood-dist-emoji">${e}</div>
+      <div class="mood-dist-count">${moodCounts[e]}</div>
+    </div>
+  `).join('');
 
-  // Weekly habit completion (last 7 days, vandaag overgeslagen als leeg)
-  const weekRows = streakRows.slice(0, 7);
-  const weekGrids = essentials.map(k => {
-    const cells = weekRows.map(r =>
-      `<div class="week-cell ${r[k] ? 'done' : ''}"></div>`
-    ).join('');
-    return `
-      <div class="week-label">${labels[k]}</div>
-      <div class="week-grid">${cells}</div>
-    `;
-  }).join('');
-
-  // Avg sleep
-  const sleepVals = rows.filter(r => r.slaap).map(r => +r.slaap);
-  const avgSleep = sleepVals.length ? (sleepVals.reduce((a,b)=>a+b,0)/sleepVals.length).toFixed(1) : '–';
-
-  // Avg weight
-  const weightVals = rows.filter(r => r.gewicht).map(r => +r.gewicht);
-  const avgWeight = weightVals.length ? (weightVals.reduce((a,b)=>a+b,0)/weightVals.length).toFixed(1) : '–';
+  const periodLabel = period === 'custom' ? `${from} – ${to}` :
+    period === '7' ? 'afgelopen 7 dagen' :
+    period === '30' ? 'afgelopen maand' :
+    period === '90' ? 'afgelopen 3 maanden' : 'afgelopen 6 maanden';
 
   document.getElementById('insights-content').innerHTML = `
     <div class="insight-card">
-      <h3>Reeks — essentials (30 dagen)</h3>
+      <h3>Reeks — essentials (huidig)</h3>
       <div class="streak-grid">${streakHtml}</div>
     </div>
 
     <div class="insight-card">
-      <h3>Stemming — afgelopen 7 dagen</h3>
-      <div class="mood-week">${moodDays || '<span style="color:var(--text-muted)">Nog geen data</span>'}</div>
+      <h3>Essentials — ${periodLabel}</h3>
+      ${essentialBars}
     </div>
 
     <div class="insight-card">
-      <h3>Gewoonten — afgelopen 7 dagen</h3>
-      ${weekGrids}
+      <h3>Bonussen — ${periodLabel}</h3>
+      ${bonusBars}
     </div>
 
     <div class="insight-card">
-      <h3>Gemiddelden (30 dagen)</h3>
-      <div style="display:flex;gap:16px">
-        <div style="flex:1;background:var(--surface-2);border-radius:var(--radius-sm);padding:12px;text-align:center">
-          <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px">Slaap</div>
-          <div style="font-size:1.8rem;font-weight:700;color:var(--primary)">${avgSleep}</div>
-          <div style="font-size:0.72rem;color:var(--text-muted)">uur/nacht</div>
+      <h3>Aandachtspunten — ${periodLabel}</h3>
+      ${badBars}
+    </div>
+
+    <div class="insight-card">
+      <h3>Stemming — ${periodLabel}</h3>
+      <div class="mood-dist">${moodHtml}</div>
+    </div>
+
+    <div class="insight-card">
+      <h3>Gemiddelden — ${periodLabel}</h3>
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-label">Slaap</div>
+          <div class="stat-value">${avgSleep}</div>
+          <div class="stat-unit">uur/nacht</div>
         </div>
-        <div style="flex:1;background:var(--surface-2);border-radius:var(--radius-sm);padding:12px;text-align:center">
-          <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px">Gewicht</div>
-          <div style="font-size:1.8rem;font-weight:700;color:var(--primary)">${avgWeight}</div>
-          <div style="font-size:0.72rem;color:var(--text-muted)">kg gem.</div>
+        <div class="stat-box">
+          <div class="stat-label">Gewicht gem.</div>
+          <div class="stat-value">${avgWeight}</div>
+          <div class="stat-unit">kg</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Gewicht min–max</div>
+          <div class="stat-value" style="font-size:1rem;padding-top:6px">${minWeight}–${maxWeight}</div>
+          <div class="stat-unit">kg</div>
         </div>
       </div>
     </div>
@@ -692,6 +729,25 @@ function initListeners() {
     if (state.date < todayStr()) {
       loadCheckinForDate(offsetDate(state.date, 1));
     }
+  });
+
+  // Period selector
+  document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const customRange = document.getElementById('custom-range');
+      if (btn.dataset.period === 'custom') {
+        customRange.style.display = 'block';
+        if (!document.getElementById('range-from').value) {
+          document.getElementById('range-from').value = offsetDate(todayStr(), -29);
+          document.getElementById('range-to').value = todayStr();
+        }
+      } else {
+        customRange.style.display = 'none';
+        loadInsights();
+      }
+    });
   });
 
   // Theme toggle

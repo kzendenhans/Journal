@@ -544,6 +544,112 @@ textarea::placeholder { color: var(--text-muted); }
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ── Period Selector ── */
+.period-selector {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.period-selector::-webkit-scrollbar { display: none; }
+
+.period-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 7px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.period-btn.active {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Habit bar ── */
+.habit-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.habit-bar-label {
+  font-size: 0.82rem;
+  color: var(--text-sub);
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.habit-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.habit-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
+.habit-bar-fill.essential { background: var(--success); }
+.habit-bar-fill.bad { background: var(--danger); }
+
+.habit-bar-pct {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Mood distribution ── */
+.mood-dist {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  height: 60px;
+}
+
+.mood-dist-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.mood-dist-bar-wrap { flex: 1; display: flex; align-items: flex-end; width: 100%; }
+.mood-dist-bar { width: 100%; background: var(--accent-bg); border-radius: 3px 3px 0 0; min-height: 2px; transition: height 0.4s; }
+.mood-dist-emoji { font-size: 1.1rem; }
+.mood-dist-count { font-size: 0.65rem; color: var(--text-muted); }
+
+/* ── Stats row ── */
+.stats-row {
+  display: flex;
+  gap: 10px;
+}
+
+.stat-box {
+  flex: 1;
+  background: var(--bg-2);
+  border-radius: 10px;
+  padding: 14px 12px;
+  text-align: center;
+}
+
+.stat-label { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 6px; }
+.stat-value { font-size: 1.6rem; font-weight: 300; color: var(--text); letter-spacing: -0.02em; }
+.stat-unit { font-size: 0.7rem; color: var(--text-muted); }
+
 /* ── Insights ── */
 .insight-card {
   background: var(--surface);
