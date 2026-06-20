@@ -20,7 +20,7 @@
 </head>
 <body>
 <h1>Habit Tracker Import</h1>
-<p>Importeert alle maandtabs (jan–jun 2026) naar Supabase.</p>
+<p>Importeert alle maandtabs (jan–jun 2026) naar Supabase, inclusief gewicht, stemming en emoties.</p>
 
 <label>Supabase Project URL</label>
 <input id="sb-url" type="url" placeholder="https://xxxx.supabase.co">
@@ -43,20 +43,31 @@ const MONTHS = [
   { name: 'Juni 2026',     gid: 1234435434,  year: 2026, month: 6 },
 ];
 
+// Maps sheet row labels → Supabase column names
 const HABIT_MAP = {
-  'bewogen':            'gym',
-  'gewerkt':            'gewerkt',
-  'geklust':            'geklust',
-  'geschreven':         'geschreven',
-  'geleest':            'geleest',
-  'gemediteerd':        'gemediteerd',
-  'tijd met anderen':   'tijd_met_anderen',
-  'gespeeld':           'gespeeld',
-  'te veel/weinig eten':'te_veel_weinig_eten',
-  'gedoomscrolled':     'gedoomscrolled',
-  'gemasturbeerd':      'gemasturbeerd',
-  'porno gekeken':      'porno_gekeken',
+  'bewogen':             'gym',
+  'gym':                 'gym',
+  'gewerkt':             'gewerkt',
+  'geklust':             'geklust',
+  'geschreven':          'geschreven',
+  'geleest':             'geleest',
+  'gemediteerd':         'gemediteerd',
+  'tijd met anderen':    'tijd_met_anderen',
+  'gespeeld':            'gespeeld',
+  'te veel/weinig eten': 'te_veel_weinig_eten',
+  'gedoomscrolled':      'gedoomscrolled',
+  'gemasturbeerd':       'gemasturbeerd',
+  'porno gekeken':       'porno_gekeken',
 };
+
+const EMOTION_MAP = {
+  'blij':       'blij',
+  'bang':       'bang',
+  'boos':       'boos',
+  'verdrietig': 'verdrietig',
+};
+
+const MOOD_EMOJIS = ['😄','🙂','😐','🙁','😩'];
 
 function log(msg, cls='') {
   const el = document.getElementById('log');
@@ -80,45 +91,51 @@ function parseCSV(text) {
 
 function parseMonth(csvText, year, month) {
   const rows = parseCSV(csvText);
-  const entries = {};
-
-  // Find header row (contains day numbers 1..28+)
-  let habitHeaderIdx = -1;
-  for (let i = 0; i < rows.length; i++) {
-    if (rows[i][1] === '1' && rows[i][2] === '2') { habitHeaderIdx = i; break; }
-  }
-  if (habitHeaderIdx < 0) return [];
-
   const dayCount = new Date(year, month, 0).getDate();
+  const pad = n => String(n).padStart(2, '0');
 
-  // Init entries for each day
+  const entries = {};
   for (let d = 1; d <= dayCount; d++) {
-    const pad = n => String(n).padStart(2, '0');
     entries[d] = {
       date: `${year}-${pad(month)}-${pad(d)}`,
       gym: false, gewerkt: false, geklust: false, geschreven: false,
       geleest: false, gemediteerd: false, tijd_met_anderen: false, gespeeld: false,
       te_veel_weinig_eten: false, gedoomscrolled: false, gemasturbeerd: false, porno_gekeken: false,
       slaap: null, gewicht: null,
+      mood_emoji: null, blij: false, bang: false, boos: false, verdrietig: false,
     };
   }
 
-  let mode = 'habits'; // habits | slaap | gewicht
-  let sleepHeaderIdx = -1;
-  let gewichtHeaderIdx = -1;
+  // Find first header row (contains day numbers 1, 2, 3...)
+  let startRow = -1;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i][1] === '1' && rows[i][2] === '2' && rows[i][3] === '3') {
+      startRow = i; break;
+    }
+  }
+  if (startRow < 0) return [];
 
-  for (let r = habitHeaderIdx + 1; r < rows.length; r++) {
+  let mode = 'habits';
+
+  for (let r = startRow + 1; r < rows.length; r++) {
     const row = rows[r];
-    const label = (row[0] || '').toLowerCase().trim();
+    const raw = (row[0] || '').trim();
+    const label = raw.toLowerCase();
 
-    if (label === 'slaap') { mode = 'slaap'; sleepHeaderIdx = r; continue; }
-    if (label === 'gewicht') { mode = 'gewicht'; gewichtHeaderIdx = r; continue; }
+    // Section switches
+    if (label === 'slaap')   { mode = 'slaap';   continue; }
+    if (label === 'gewicht') { mode = 'gewicht';  continue; }
+    if (label === 'gemoed')  { mode = 'gemoed';   continue; }
+    if (label === '-')       break;
+
+    // New header row (day numbers) — skip
+    if (row[1] === '1' && row[2] === '2') continue;
 
     if (mode === 'habits') {
       const col = HABIT_MAP[label];
       if (!col) continue;
       for (let d = 1; d <= dayCount; d++) {
-        if (row[d] && row[d].trim() === '1') entries[d][col] = true;
+        if ((row[d] || '').trim() === '1') entries[d][col] = true;
       }
     }
 
@@ -126,15 +143,38 @@ function parseMonth(csvText, year, month) {
       const hours = parseFloat(label);
       if (!isNaN(hours)) {
         for (let d = 1; d <= dayCount; d++) {
-          if (row[d] && row[d].trim() === '1') entries[d].slaap = hours;
+          if ((row[d] || '').trim() === '1') entries[d].slaap = hours;
         }
       }
     }
 
-    if (mode === 'gewicht' && label === 'kg') {
-      for (let d = 1; d <= dayCount; d++) {
-        const v = parseFloat(row[d]);
-        if (!isNaN(v)) entries[d].gewicht = v;
+    if (mode === 'gewicht') {
+      // Accept "kg" or any label containing a weight row (ochtend, avond, etc.)
+      const isWeightRow = label === 'kg' || label.includes('u)') || label.includes('ochtend') || label.includes('avond');
+      if (isWeightRow) {
+        for (let d = 1; d <= dayCount; d++) {
+          const v = parseFloat((row[d] || '').replace(',', '.'));
+          if (!isNaN(v) && entries[d].gewicht === null) entries[d].gewicht = v;
+        }
+      }
+    }
+
+    if (mode === 'gemoed') {
+      // Mood emoji rows
+      if (MOOD_EMOJIS.includes(raw)) {
+        for (let d = 1; d <= dayCount; d++) {
+          if ((row[d] || '').trim() === '1' && entries[d].mood_emoji === null) {
+            entries[d].mood_emoji = raw;
+          }
+        }
+        continue;
+      }
+      // Emotion rows (Blij, Bang, Boos, Verdrietig)
+      const ecol = EMOTION_MAP[label];
+      if (ecol) {
+        for (let d = 1; d <= dayCount; d++) {
+          if ((row[d] || '').trim() === '1') entries[d][ecol] = true;
+        }
       }
     }
   }
@@ -159,6 +199,14 @@ async function insertRows(sbUrl, sbKey, rows) {
   }
 }
 
+function hasData(r) {
+  return r.gym || r.gewerkt || r.geklust || r.geschreven || r.geleest ||
+    r.gemediteerd || r.tijd_met_anderen || r.gespeeld ||
+    r.te_veel_weinig_eten || r.gedoomscrolled || r.gemasturbeerd ||
+    r.porno_gekeken || r.slaap !== null || r.gewicht !== null ||
+    r.mood_emoji !== null || r.blij || r.bang || r.boos || r.verdrietig;
+}
+
 async function runImport() {
   const sbUrl = document.getElementById('sb-url').value.trim().replace(/\/$/, '');
   const sbKey = document.getElementById('sb-key').value.trim();
@@ -180,18 +228,13 @@ async function runImport() {
       const text = await res.text();
 
       const rows = parseMonth(text, m.year, m.month);
-      const nonEmpty = rows.filter(r =>
-        r.gym || r.gewerkt || r.geklust || r.geschreven || r.geleest ||
-        r.gemediteerd || r.tijd_met_anderen || r.gespeeld ||
-        r.te_veel_weinig_eten || r.gedoomscrolled || r.gemasturbeerd ||
-        r.porno_gekeken || r.slaap !== null || r.gewicht !== null
-      );
+      const withData = rows.filter(hasData);
 
-      if (!nonEmpty.length) { log(`  Geen data gevonden, overgeslagen.`); continue; }
+      if (!withData.length) { log(`  Geen data gevonden, overgeslagen.`); continue; }
 
-      await insertRows(sbUrl, sbKey, rows); // insert all days (incl. empty) to avoid gaps
-      total += nonEmpty.length;
-      log(`  ✓ ${nonEmpty.length} dagen met data ingevoerd (${rows.length} dagen totaal)`, 'ok');
+      await insertRows(sbUrl, sbKey, rows);
+      total += withData.length;
+      log(`  ✓ ${withData.length} dagen met data (${rows.length} dagen totaal)`, 'ok');
     } catch (e) {
       log(`  ✗ Fout: ${e.message}`, 'err');
     }
