@@ -34,24 +34,27 @@
 }
 
 /* ── Base ── */
-html { font-size: 16px; }
+html { font-size: 16px; height: 100%; overflow: hidden; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', sans-serif;
   background: var(--bg);
   color: var(--text);
-  min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
   transition: background 0.4s, color 0.4s;
 }
 
 /* ── Layout ── */
-#app { display: flex; flex-direction: column; min-height: 100vh; }
+#app { display: flex; flex-direction: column; height: 100%; }
 
 main {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding-bottom: calc(var(--nav-h) + 20px);
 }
 
