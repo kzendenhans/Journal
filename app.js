@@ -510,46 +510,27 @@ function renderInsights(rows, allRows, from, to, period) {
   const streakRows  = allRows[0] && allRows[0].date === todayStr() && todayEmpty(allRows[0]) ? allRows.slice(1) : allRows;
   const n = dataRows.length;
 
-  // ── Streaks (berekend vanuit alle data, niet beperkt tot periode) ──
-  const streaks = {};
-  ['gewerkt','geklust','geschreven'].forEach(k => {
-    let s = 0;
-    for (const r of streakRows) { if (r[k]) s++; else break; }
-    streaks[k] = s;
-  });
+  // ── Essentials: frequentie per periode ──
+  const periodDays = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
 
-  // Gym: wekelijkse frequentie in plaats van reeks
-  const mondayOfWeek = () => {
-    const d = new Date();
-    const day = d.getDay(); // 0=zo, 1=ma
-    const diff = (day === 0 ? -6 : 1 - day);
-    d.setDate(d.getDate() + diff);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  };
-  const weekStart = mondayOfWeek();
-  const gymThisWeek = streakRows.filter(r => r.date >= weekStart && r.gym).length;
+  const freqHtml = essentials.map(k => {
+    const count = dataRows.filter(r => r[k]).length;
+    const gymColor = k === 'gym'
+      ? (count >= Math.round(periodDays / 7 * 5) ? 'var(--success)'
+        : count >= Math.round(periodDays / 7 * 3) ? 'var(--accent)'
+        : 'var(--danger)')
+      : 'var(--text)';
+    return `
+      <div class="streak-item">
+        <div class="streak-name">${labels[k]}</div>
+        <div style="display:flex;align-items:baseline;gap:4px">
+          <div class="streak-count" style="color:${gymColor}">${count}</div>
+          <div class="streak-label">/ ${periodDays} d</div>
+        </div>
+      </div>`;
+  }).join('');
 
-  const totalWeeks = Math.max(1, (allRows.length / 7));
-  const gymTotal = allRows.filter(r => r.gym).length;
-  const gymAvgPerWeek = (gymTotal / totalWeeks).toFixed(1);
-
-  const gymColor = gymThisWeek >= 5 ? 'var(--success)' : gymThisWeek >= 3 ? 'var(--accent)' : 'var(--danger)';
-
-  const streakHtml = `
-    <div class="streak-item" style="grid-column:span 2">
-      <div class="streak-name">Gym — deze week</div>
-      <div style="display:flex;align-items:baseline;gap:6px">
-        <div class="streak-count" style="color:${gymColor}">${gymThisWeek}</div>
-        <div class="streak-label">/ 5 dagen &nbsp;·&nbsp; gem. ${gymAvgPerWeek}/week</div>
-      </div>
-    </div>
-  ` + ['gewerkt','geklust','geschreven'].map(k => `
-    <div class="streak-item">
-      <div class="streak-name">${labels[k]}</div>
-      <div class="streak-count">${streaks[k]}</div>
-      <div class="streak-label">op rij</div>
-    </div>
-  `).join('');
+  const streakHtml = freqHtml;
 
   // ── Completion rates ──
   function barHtml(k, cls) {
@@ -599,7 +580,7 @@ function renderInsights(rows, allRows, from, to, period) {
 
   document.getElementById('insights-content').innerHTML = `
     <div class="insight-card">
-      <h3>Reeks — essentials (huidig)</h3>
+      <h3>Essentials — frequentie</h3>
       <div class="streak-grid">${streakHtml}</div>
     </div>
 
