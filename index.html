@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0f1117">
+  <title>Dagboek</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <main id="main">
+
+    <!-- ── Check-in Screen ── -->
+    <section id="screen-checkin" class="screen active">
+      <div class="screen-header">
+        <div>
+          <h1 id="checkin-title">Vandaag</h1>
+          <div class="date-sub" id="checkin-date"></div>
+        </div>
+        <div class="date-nav">
+          <button class="date-nav-btn" id="date-prev" title="Vorige dag">‹</button>
+          <button class="date-nav-btn" id="date-next" title="Volgende dag">›</button>
+        </div>
+      </div>
+
+      <div id="setup-banner" class="setup-banner" style="display:none">
+        <strong>Setup vereist</strong> — Voeg je Supabase URL en API-sleutel toe via <a href="#" onclick="showSettings()" style="color:var(--primary)">Instellingen</a>.
+      </div>
+
+      <!-- Essentials -->
+      <div class="habit-section">
+        <h2>Essentials</h2>
+        <div class="habit-grid">
+          <button class="habit-btn" data-key="gym">🏋️ Gym</button>
+          <button class="habit-btn" data-key="gewerkt">💼 Gewerkt</button>
+          <button class="habit-btn" data-key="geklust">🔧 Geklust</button>
+          <button class="habit-btn" data-key="geschreven">✍️ Geschreven</button>
+        </div>
+      </div>
+
+      <!-- Bonussen -->
+      <div class="habit-section">
+        <h2>Bonussen</h2>
+        <div class="habit-grid">
+          <button class="habit-btn" data-key="geleest">📚 Gelezen</button>
+          <button class="habit-btn" data-key="gemediteerd">🧘 Gemediteerd</button>
+          <button class="habit-btn" data-key="tijd_met_anderen">🤝 Tijd met anderen</button>
+          <button class="habit-btn" data-key="gespeeld">🎮 Gespeeld</button>
+        </div>
+      </div>
+
+      <!-- Aandachtspunten -->
+      <div class="habit-section">
+        <h2>Aandachtspunten</h2>
+        <div class="habit-grid">
+          <button class="habit-btn bad" data-key="te_veel_weinig_eten">🍽️ Te veel/weinig eten</button>
+          <button class="habit-btn bad" data-key="gedoomscrolled">📱 Gedoomscrolled</button>
+          <button class="habit-btn bad" data-key="gemasturbeerd">💦 Gemasturbeerd</button>
+          <button class="habit-btn bad" data-key="porno_gekeken">🔞 Porno gekeken</button>
+        </div>
+      </div>
+
+      <!-- Slaap -->
+      <div class="habit-section">
+        <h2>Slaap</h2>
+        <div class="sleep-row">
+          <div class="sleep-controls">
+            <button class="sleep-btn" id="sleep-minus">−</button>
+            <div>
+              <div class="sleep-value" id="sleep-value">7.5</div>
+              <div class="sleep-label">uur</div>
+            </div>
+            <button class="sleep-btn" id="sleep-plus">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gewicht -->
+      <div class="habit-section">
+        <h2>Gewicht</h2>
+        <div class="weight-row">
+          <input type="number" id="weight-input" placeholder="—" step="0.1" min="40" max="200">
+          <span class="weight-unit">kg</span>
+        </div>
+      </div>
+
+      <!-- Mood -->
+      <div class="habit-section">
+        <h2>Stemming</h2>
+        <div class="mood-emojis">
+          <button class="mood-btn" data-mood="😞">😞</button>
+          <button class="mood-btn" data-mood="😕">😕</button>
+          <button class="mood-btn" data-mood="😐">😐</button>
+          <button class="mood-btn" data-mood="🙂">🙂</button>
+          <button class="mood-btn" data-mood="😄">😄</button>
+        </div>
+        <div class="emotion-grid">
+          <button class="emotion-btn" data-key="blij">Blij</button>
+          <button class="emotion-btn" data-key="bang">Bang</button>
+          <button class="emotion-btn" data-key="boos">Boos</button>
+          <button class="emotion-btn" data-key="verdrietig">Verdrietig</button>
+        </div>
+      </div>
+
+      <!-- Notities -->
+      <div class="habit-section">
+        <h2>Notities</h2>
+        <textarea id="notes-input" placeholder="Hoe was je dag?"></textarea>
+      </div>
+
+      <div class="save-container">
+        <button class="save-btn" id="save-btn">Opslaan</button>
+      </div>
+    </section>
+
+    <!-- ── Tasks Screen ── -->
+    <section id="screen-tasks" class="screen">
+      <div class="screen-header">
+        <h1>Taken</h1>
+        <button class="add-btn" id="add-task-btn" title="Taak toevoegen">+</button>
+      </div>
+      <div id="tasks-content">
+        <div class="loading"><div class="spinner"></div>Laden…</div>
+      </div>
+    </section>
+
+    <!-- ── Insights Screen ── -->
+    <section id="screen-insights" class="screen">
+      <div class="screen-header">
+        <h1>Inzichten</h1>
+      </div>
+      <div id="insights-content">
+        <div class="loading"><div class="spinner"></div>Laden…</div>
+      </div>
+    </section>
+
+    <!-- ── Settings Screen ── -->
+    <section id="screen-settings" class="screen">
+      <div class="screen-header">
+        <h1>Instellingen</h1>
+      </div>
+
+      <div class="settings-section">
+        <h2>Supabase</h2>
+        <label>Project URL</label>
+        <input type="url" id="sb-url" placeholder="https://xxxx.supabase.co">
+        <label>Anon Key</label>
+        <input type="password" id="sb-key" placeholder="eyJ…">
+        <div class="connection-status" id="sb-status">
+          <span class="status-dot idle"></span> Niet getest
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="save-btn" style="padding:12px" onclick="saveSupabase()">Opslaan</button>
+          <button class="btn-secondary" style="flex:1;padding:12px" onclick="testSupabase()">Test verbinding</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2>Asana</h2>
+        <label>Personal Access Token</label>
+        <input type="password" id="asana-pat" placeholder="1/…">
+        <div class="connection-status" id="asana-status">
+          <span class="status-dot idle"></span> Niet getest
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="save-btn" style="padding:12px" onclick="saveAsana()">Opslaan</button>
+          <button class="btn-secondary" style="flex:1;padding:12px" onclick="testAsana()">Test verbinding</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2>Over</h2>
+        <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.6">
+          Dagboek v1.0<br>
+          Data wordt opgeslagen in Supabase.<br>
+          Taken worden gesynchroniseerd met Asana.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Bottom Navigation ── -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-screen="checkin">
+      <span class="nav-icon">✓</span>
+      <span class="nav-label">Check-in</span>
+    </button>
+    <button class="nav-item" data-screen="tasks">
+      <span class="nav-icon">☑</span>
+      <span class="nav-label">Taken</span>
+    </button>
+    <button class="nav-item" data-screen="insights">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Inzichten</span>
+    </button>
+    <button class="nav-item" data-screen="settings">
+      <span class="nav-icon">⚙</span>
+      <span class="nav-label">Instellingen</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ── Add Task Modal ── -->
+<div class="modal-overlay" id="task-modal">
+  <div class="modal">
+    <h2>Nieuwe taak</h2>
+    <input type="text" id="new-task-name" placeholder="Taaknaam…">
+    <select id="new-task-project">
+      <option value="">Project (optioneel)</option>
+    </select>
+    <input type="date" id="new-task-due" placeholder="Deadline (optioneel)">
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Annuleren</button>
+      <button class="save-btn" onclick="createTask()">Toevoegen</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
