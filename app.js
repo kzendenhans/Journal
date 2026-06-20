@@ -23,6 +23,7 @@ const state = {
   tasks: [],
   projects: [],
   asanaWorkspace: null,
+  taskFilter: 'all',
 };
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
@@ -178,8 +179,10 @@ function renderCheckin() {
   document.getElementById('checkin-title').textContent = isToday ? 'Vandaag' : isYesterday ? 'Gisteren' : dayNames[titleDate.getDay()];
   document.getElementById('checkin-date').textContent = formatDateNL(state.date);
 
-  // Date nav: disable next if today
+  // Date nav: disable next if today; show Vandaag when past
   document.getElementById('date-next').disabled = isToday;
+  const todayBtn = document.getElementById('today-btn');
+  if (todayBtn) todayBtn.style.display = isToday ? 'none' : '';
 
   // Habit buttons
   document.querySelectorAll('.habit-btn').forEach(btn => {
@@ -246,6 +249,61 @@ async function loadCheckinForDate(dateStr) {
   }
 
   renderCheckin();
+  if (dateStr === todayStr()) loadWeekSummary();
+}
+
+function goToToday() {
+  loadCheckinForDate(todayStr());
+}
+
+async function loadWeekSummary() {
+  const el = document.getElementById('week-summary');
+  if (!el) return;
+  if (new Date().getDay() !== 1 || !cfg.sbUrl || !cfg.sbKey) { el.innerHTML = ''; return; }
+
+  const getMonday = d => {
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const m = new Date(d);
+    m.setDate(d.getDate() + diff);
+    return `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}-${String(m.getDate()).padStart(2,'0')}`;
+  };
+
+  const lastMon = new Date();
+  lastMon.setDate(lastMon.getDate() - 7);
+  const from = getMonday(lastMon);
+  const fromDate = new Date(from + 'T12:00:00');
+  const toDate = new Date(fromDate);
+  toDate.setDate(fromDate.getDate() + 6);
+  const to = `${toDate.getFullYear()}-${String(toDate.getMonth()+1).padStart(2,'0')}-${String(toDate.getDate()).padStart(2,'0')}`;
+
+  try {
+    const rows = await sbFetch(`/habit_entries?date=gte.${from}&date=lte.${to}&limit=7`);
+    if (!rows || !rows.length) { el.innerHTML = ''; return; }
+
+    const goals = [
+      { key: 'gym',        label: 'Gym',      goal: 3 },
+      { key: 'gewerkt',    label: 'Gewerkt',  goal: 5 },
+      { key: 'geklust',    label: 'Geklust',  goal: 1 },
+      { key: 'geschreven', label: 'Schrijven',goal: 1 },
+    ];
+
+    const goalsHtml = goals.map(g => {
+      const count = rows.filter(r => r[g.key]).length;
+      const met = count >= g.goal;
+      return `<div class="week-summary-goal">
+        <span style="font-size:0.78rem;color:${met ? 'var(--success)' : 'var(--text-muted)'}">${met ? '✓' : '○'}</span>
+        <span>${g.label} <span style="color:var(--text-muted);font-size:0.78rem">${count}/${g.goal}</span></span>
+      </div>`;
+    }).join('');
+
+    el.innerHTML = `<div class="week-summary-card">
+      <h3>Vorige week</h3>
+      <div class="week-summary-goals">${goalsHtml}</div>
+    </div>`;
+  } catch(e) {
+    el.innerHTML = '';
+  }
 }
 
 async function saveCheckin() {
@@ -342,13 +400,26 @@ async function loadTasks() {
 
 function renderTasks() {
   const container = document.getElementById('tasks-content');
-  if (!state.tasks.length) {
-    container.innerHTML = `<div class="empty">Geen openstaande taken</div>`;
+
+  const today = todayStr();
+  const sunDate = new Date();
+  sunDate.setDate(sunDate.getDate() + (sunDate.getDay() === 0 ? 0 : 7 - sunDate.getDay()));
+  const weekEnd = `${sunDate.getFullYear()}-${String(sunDate.getMonth()+1).padStart(2,'0')}-${String(sunDate.getDate()).padStart(2,'0')}`;
+
+  let tasks = [...state.tasks];
+  if (state.taskFilter === 'today') {
+    tasks = tasks.filter(t => t.due_on === today);
+  } else if (state.taskFilter === 'week') {
+    tasks = tasks.filter(t => t.due_on && t.due_on >= today && t.due_on <= weekEnd);
+  }
+
+  if (!tasks.length) {
+    container.innerHTML = `<div class="empty">${state.taskFilter !== 'all' ? 'Geen taken voor deze periode' : 'Geen openstaande taken'}</div>`;
     return;
   }
 
   // Sort by deadline: overdue/today first, then upcoming, no date last
-  const sorted = [...state.tasks].sort((a, b) => {
+  const sorted = tasks.sort((a, b) => {
     if (!a.due_on && !b.due_on) return 0;
     if (!a.due_on) return 1;
     if (!b.due_on) return -1;
@@ -540,7 +611,7 @@ async function loadInsights() {
   }
 }
 
-function lineChartHtml(vals, dates, color, target = null) {
+function lineChartHtml(vals, dates, color, target = null, showZone = true) {
   if (vals.length < 2) return `<p style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:8px 0">Te weinig data</p>`;
 
   let min = Math.min(...vals);
@@ -559,14 +630,13 @@ function lineChartHtml(vals, dates, color, target = null) {
   const linePoints = pts.map(p => p.join(',')).join(' ');
   const areaPath = `M${pts[0][0]},${T + cH} ` + pts.map(p => `L${p[0]},${p[1]}`).join(' ') + ` L${pts[pts.length-1][0]},${T + cH} Z`;
 
-  // Target zone: light red rect below target line + dashed line
   let targetHtml = '';
   if (target !== null) {
     const ty = +toY(target).toFixed(1);
-    const zoneH = (T + cH) - ty;
-    targetHtml =
-      `<rect x="${L}" y="${ty}" width="${cW}" height="${zoneH}" fill="var(--danger)" fill-opacity="0.10"/>`
-    + `<line x1="${L}" y1="${ty}" x2="${W - R}" y2="${ty}" stroke="var(--danger)" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="4,3"/>`;
+    targetHtml = showZone
+      ? `<rect x="${L}" y="${ty}" width="${cW}" height="${(T + cH) - ty}" fill="var(--danger)" fill-opacity="0.10"/>`
+      + `<line x1="${L}" y1="${ty}" x2="${W - R}" y2="${ty}" stroke="var(--danger)" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="4,3"/>`
+      : `<line x1="${L}" y1="${ty}" x2="${W - R}" y2="${ty}" stroke="var(--text-muted)" stroke-opacity="0.6" stroke-width="1" stroke-dasharray="4,3"/>`;
   }
 
   // Y-axis: 3 ticks (max, mid, min)
@@ -602,6 +672,61 @@ function lineChartHtml(vals, dates, color, target = null) {
     <polyline points="${linePoints}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
     ${yHtml}${xHtml}
   </svg>`;
+}
+
+function renderHeatmap(allRows) {
+  if (!allRows.length) return '';
+
+  const scoreMap = {};
+  allRows.forEach(r => {
+    scoreMap[r.date] = ['gym','gewerkt','geklust','geschreven'].filter(k => r[k]).length;
+  });
+
+  const pad = n => String(n).padStart(2, '0');
+  const dstr = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const today = dstr(new Date());
+
+  const start = new Date();
+  start.setDate(start.getDate() - 26 * 7);
+  const startDow = start.getDay();
+  start.setDate(start.getDate() - (startDow === 0 ? 6 : startDow - 1));
+
+  const cur = new Date(start);
+  const monthNames = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+  const weeks = [];
+
+  for (let w = 0; w < 27; w++) {
+    const week = { days: [], monthLabel: '' };
+    for (let d = 0; d < 7; d++) {
+      const ds = dstr(cur);
+      if (d === 0 && cur.getDate() <= 7) week.monthLabel = monthNames[cur.getMonth()];
+      week.days.push({ date: ds, score: scoreMap[ds] || 0, future: ds > today });
+      cur.setDate(cur.getDate() + 1);
+    }
+    weeks.push(week);
+  }
+
+  const monthRow = `<div style="display:inline-flex;gap:2px;min-width:max-content;margin-bottom:4px">`
+    + weeks.map(w => `<div style="width:11px;font-size:0.6rem;color:var(--text-muted);text-align:center;overflow:hidden">${w.monthLabel}</div>`).join('')
+    + `</div>`;
+
+  const opacities = [1, 0.3, 0.55, 0.78, 1.0];
+  const cols = weeks.map(w => {
+    const cells = w.days.map(day => {
+      if (day.future) return `<div class="heatmap-cell" style="opacity:0"></div>`;
+      if (day.score === 0) return `<div class="heatmap-cell"></div>`;
+      return `<div class="heatmap-cell" style="background:var(--accent);opacity:${opacities[day.score]}"></div>`;
+    }).join('');
+    return `<div class="heatmap-col">${cells}</div>`;
+  }).join('');
+
+  return `<div class="insight-card">
+    <h3>Overzicht — afgelopen 6 maanden</h3>
+    <div class="heatmap-wrap">
+      ${monthRow}
+      <div class="heatmap">${cols}</div>
+    </div>
+  </div>`;
 }
 
 function renderInsights(rows, allRows, from, to, period) {
@@ -790,8 +915,10 @@ function renderInsights(rows, allRows, from, to, period) {
 
     <div class="insight-card">
       <h3>Gewicht — ${periodLabel}</h3>
-      ${lineChartHtml(weightVals, weightDates, 'var(--success)')}
+      ${lineChartHtml(weightVals, weightDates, 'var(--success)', 75.0, false)}
     </div>
+
+    ${renderHeatmap(allRows)}
   `;
 }
 
@@ -890,6 +1017,7 @@ function populateSettingsFields() {
   document.getElementById('sb-url').value = cfg.sbUrl;
   document.getElementById('sb-key').value = cfg.sbKey;
   document.getElementById('asana-pat').value = cfg.asanaPat;
+  updateNotificationStatus();
 }
 
 function saveSupabase() {
@@ -927,6 +1055,62 @@ async function testAsana() {
   } catch(e) {
     statusEl.innerHTML = `<span class="status-dot err"></span> Fout: ${e.message}`;
   }
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+function scheduleNotifications() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (localStorage.getItem('notifications_enabled') !== 'true') return;
+  const now = new Date();
+  [8, 20].forEach(hour => {
+    const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, 0, 0);
+    const ms = target - now;
+    if (ms > 0 && ms < 86400000) {
+      setTimeout(() => {
+        new Notification('Dagboek', {
+          body: hour === 8 ? 'Goedemorgen — vergeet je check-in niet.' : 'Goedenavond — vul je dagboek in.',
+          icon: '/Journal/icon.png',
+        });
+      }, ms);
+    }
+  });
+}
+
+async function toggleNotifications() {
+  const enabled = localStorage.getItem('notifications_enabled') === 'true';
+  if (enabled) {
+    localStorage.setItem('notifications_enabled', 'false');
+    showToast('Herinneringen uitgeschakeld');
+  } else if (!('Notification' in window)) {
+    showToast('Notificaties niet ondersteund door browser');
+  } else {
+    const result = await Notification.requestPermission();
+    if (result === 'granted') {
+      localStorage.setItem('notifications_enabled', 'true');
+      scheduleNotifications();
+      showToast('✓ Herinneringen ingeschakeld');
+    } else {
+      showToast('Notificaties geweigerd — check browserinstellingen');
+    }
+  }
+  updateNotificationStatus();
+}
+
+function updateNotificationStatus() {
+  const el = document.getElementById('notification-status');
+  const btn = document.getElementById('notification-toggle-btn');
+  if (!el) return;
+  if (!('Notification' in window)) {
+    el.innerHTML = `<span class="status-dot err"></span> Niet ondersteund`;
+    return;
+  }
+  const enabled = localStorage.getItem('notifications_enabled') === 'true' && Notification.permission === 'granted';
+  el.innerHTML = enabled
+    ? `<span class="status-dot ok"></span> Ingeschakeld — 8:00 & 20:00`
+    : Notification.permission === 'denied'
+      ? `<span class="status-dot err"></span> Geblokkeerd — check browserinstellingen`
+      : `<span class="status-dot idle"></span> Niet ingeschakeld`;
+  if (btn) btn.textContent = enabled ? 'Uitschakelen' : 'Inschakelen';
 }
 
 // ── Event Listeners ───────────────────────────────────────────────────────────
@@ -1027,6 +1211,16 @@ function initListeners() {
     });
   });
 
+  // Task filter buttons
+  document.querySelectorAll('.task-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.task-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.taskFilter = btn.dataset.filter;
+      renderTasks();
+    });
+  });
+
   // Add task button
   document.getElementById('add-task-btn').addEventListener('click', openModal);
 
@@ -1081,4 +1275,5 @@ function registerSW() {
 initTheme();
 initListeners();
 registerSW();
+scheduleNotifications();
 loadCheckinForDate(todayStr());
