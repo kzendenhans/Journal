@@ -538,6 +538,7 @@ function renderInsights(rows, allRows, from, to, period) {
   const n = dataRows.length;
 
   // ── Progressiedoelen (schaalt mee met geselecteerde periode) ──
+  const periodDays = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
   const WEEKLY_RATES = { gym: 3/7, gewerkt: 5/7, geklust: 1, geschreven: 1 };
   const periodGoal = k => Math.round(WEEKLY_RATES[k] * periodDays) || 1;
 
@@ -566,8 +567,6 @@ function renderInsights(rows, allRows, from, to, period) {
   }).join('');
 
   // ── Essentials: frequentie per geselecteerde periode ──
-  const periodDays = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
-
   const freqHtml = essentials.map(k => {
     const count = dataRows.filter(r => r[k]).length;
     return `
