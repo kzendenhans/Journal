@@ -539,8 +539,19 @@ function renderInsights(rows, allRows, from, to, period) {
 
   // ── Progressiedoelen (schaalt mee met geselecteerde periode) ──
   const periodDays = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
+
+  // Vaste doelbasis per periode — altijd volledige week/maand, niet verstreken dagen
+  const daysInMonth = (y, m) => new Date(y, m, 0).getDate();
+  const now = new Date();
+  const goalBaseDays =
+    (period === 'week' || period === 'lastweek') ? 7 :
+    period === 'month'   ? daysInMonth(now.getFullYear(), now.getMonth() + 1) :
+    period === '3months' ? 91 :
+    period === '6months' ? 182 :
+    periodDays;
+
   const WEEKLY_RATES = { gym: 3/7, gewerkt: 5/7, geklust: 1, geschreven: 1 };
-  const periodGoal = k => Math.round(WEEKLY_RATES[k] * periodDays) || 1;
+  const periodGoal = k => Math.round(WEEKLY_RATES[k] * goalBaseDays) || 1;
 
   const progressTitle =
     period === 'week'     ? 'Deze week' :
@@ -574,7 +585,7 @@ function renderInsights(rows, allRows, from, to, period) {
         <div class="streak-name">${labels[k]}</div>
         <div style="display:flex;align-items:baseline;gap:4px">
           <div class="streak-count">${count}</div>
-          <div class="streak-label">/ ${periodDays} d</div>
+          <div class="streak-label">/ ${goalBaseDays} d</div>
         </div>
       </div>`;
   }).join('');
