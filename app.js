@@ -165,7 +165,10 @@ function navigate(screenId) {
 // ── Check-in Screen ───────────────────────────────────────────────────────────
 function renderCheckin() {
   const isToday = state.date === todayStr();
-  document.getElementById('checkin-title').textContent = isToday ? 'Vandaag' : 'Dag aanpassen';
+  const isYesterday = state.date === offsetDate(todayStr(), -1);
+  const dayNames = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'];
+  const titleDate = new Date(state.date + 'T12:00:00');
+  document.getElementById('checkin-title').textContent = isToday ? 'Vandaag' : isYesterday ? 'Gisteren' : dayNames[titleDate.getDay()];
   document.getElementById('checkin-date').textContent = formatDateNL(state.date);
 
   // Date nav: disable next if today
