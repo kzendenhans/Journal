@@ -511,7 +511,7 @@ async function loadInsights() {
     ]);
     renderInsights(periodRows || [], allRows || [], from, to, period);
   } catch(e) {
-    container.innerHTML = `<div class="empty">⚠ Kan data niet laden.</div>`;
+    container.innerHTML = `<div class="empty">⚠ Kan data niet laden.<br><small style="color:var(--text-muted)">${e.message}</small></div>`;
   }
 }
 
