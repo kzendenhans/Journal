@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#0f1117">
+  <meta name="theme-color" content="#f6f3ee" id="theme-color-meta">
   <title>Dagboek</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
@@ -22,6 +22,7 @@
           <div class="date-sub" id="checkin-date"></div>
         </div>
         <div class="date-nav">
+          <button class="theme-btn" id="theme-toggle" title="Dag/nacht">☀</button>
           <button class="date-nav-btn" id="date-prev" title="Vorige dag">‹</button>
           <button class="date-nav-btn" id="date-next" title="Volgende dag">›</button>
         </div>
@@ -35,10 +36,10 @@
       <div class="habit-section">
         <h2>Essentials</h2>
         <div class="habit-grid">
-          <button class="habit-btn" data-key="gym">🏋️ Gym</button>
-          <button class="habit-btn" data-key="gewerkt">💼 Gewerkt</button>
-          <button class="habit-btn" data-key="geklust">🔧 Geklust</button>
-          <button class="habit-btn" data-key="geschreven">✍️ Geschreven</button>
+          <button class="habit-btn" data-key="gym"><span class="habit-check"></span>Gym</button>
+          <button class="habit-btn" data-key="gewerkt"><span class="habit-check"></span>Gewerkt</button>
+          <button class="habit-btn" data-key="geklust"><span class="habit-check"></span>Geklust</button>
+          <button class="habit-btn" data-key="geschreven"><span class="habit-check"></span>Geschreven</button>
         </div>
       </div>
 
@@ -46,10 +47,10 @@
       <div class="habit-section">
         <h2>Bonussen</h2>
         <div class="habit-grid">
-          <button class="habit-btn" data-key="geleest">📚 Gelezen</button>
-          <button class="habit-btn" data-key="gemediteerd">🧘 Gemediteerd</button>
-          <button class="habit-btn" data-key="tijd_met_anderen">🤝 Tijd met anderen</button>
-          <button class="habit-btn" data-key="gespeeld">🎮 Gespeeld</button>
+          <button class="habit-btn" data-key="geleest"><span class="habit-check"></span>Gelezen</button>
+          <button class="habit-btn" data-key="gemediteerd"><span class="habit-check"></span>Gemediteerd</button>
+          <button class="habit-btn" data-key="tijd_met_anderen"><span class="habit-check"></span>Tijd met anderen</button>
+          <button class="habit-btn" data-key="gespeeld"><span class="habit-check"></span>Gespeeld</button>
         </div>
       </div>
 
@@ -57,10 +58,10 @@
       <div class="habit-section">
         <h2>Aandachtspunten</h2>
         <div class="habit-grid">
-          <button class="habit-btn bad" data-key="te_veel_weinig_eten">🍽️ Te veel/weinig eten</button>
-          <button class="habit-btn bad" data-key="gedoomscrolled">📱 Gedoomscrolled</button>
-          <button class="habit-btn bad" data-key="gemasturbeerd">💦 Gemasturbeerd</button>
-          <button class="habit-btn bad" data-key="porno_gekeken">🔞 Porno gekeken</button>
+          <button class="habit-btn bad" data-key="te_veel_weinig_eten"><span class="habit-check"></span>Te veel/weinig eten</button>
+          <button class="habit-btn bad" data-key="gedoomscrolled"><span class="habit-check"></span>Gedoomscrolled</button>
+          <button class="habit-btn bad" data-key="gemasturbeerd"><span class="habit-check"></span>Gemasturbeerd</button>
+          <button class="habit-btn bad" data-key="porno_gekeken"><span class="habit-check"></span>Porno gekeken</button>
         </div>
       </div>
 

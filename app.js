@@ -684,6 +684,13 @@ function initListeners() {
     }
   });
 
+  // Theme toggle
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    localStorage.setItem('theme_override_hour', new Date().getHours());
+    applyTheme(!isDark);
+  });
+
   // Add task button
   document.getElementById('add-task-btn').addEventListener('click', openModal);
 
@@ -693,14 +700,46 @@ function initListeners() {
   });
 }
 
+// ── Theme (dag/nacht op basis van uur, overschrijfbaar) ───────────────────────
+function isDayTime() {
+  const h = new Date().getHours();
+  return h >= 7 && h < 21;
+}
+
+function applyTheme(dark) {
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  document.getElementById('theme-toggle').textContent = dark ? '☽' : '☀';
+  const meta = document.getElementById('theme-color-meta');
+  if (meta) meta.content = dark ? '#111110' : '#f6f3ee';
+  localStorage.setItem('theme_override', dark ? 'dark' : 'light');
+}
+
+function initTheme() {
+  const override = localStorage.getItem('theme_override');
+  // Override geldt alleen als het is ingesteld in het huidige uur-blok
+  const savedHour = parseInt(localStorage.getItem('theme_override_hour') || '-1');
+  const currentHour = new Date().getHours();
+  const sameBlock = (savedHour >= 7 && currentHour >= 7 && savedHour < 21 && currentHour < 21)
+                 || (savedHour < 7 && currentHour < 7)
+                 || (savedHour >= 21 && currentHour >= 21);
+
+  if (override && sameBlock) {
+    applyTheme(override === 'dark');
+  } else {
+    applyTheme(!isDayTime());
+    localStorage.removeItem('theme_override');
+  }
+}
+
 // ── Service Worker ────────────────────────────────────────────────────────────
 function registerSW() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/Journal/sw.js').catch(() => {});
   }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+initTheme();
 initListeners();
 registerSW();
 loadCheckinForDate(todayStr());
