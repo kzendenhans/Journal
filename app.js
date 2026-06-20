@@ -501,6 +501,9 @@ async function loadInsights() {
     to   = document.getElementById('range-to').value   || todayStr();
   }
 
+  // Fallback voor onbekende of gecachede periode-waarden
+  if (!from) from = getMonday(new Date());
+
   try {
     const [periodRows, allRows] = await Promise.all([
       sbFetch(`/habit_entries?date=gte.${from}&date=lte.${to}&order=date.desc&limit=500`),
