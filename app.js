@@ -120,7 +120,7 @@ async function loadAsanaTasks() {
   // Get user's GID first
   const me = await asanaFetch('/users/me');
   const tasks = await asanaFetch(
-    `/tasks?workspace=${ws}&assignee=${me.gid}&completed_since=now&opt_fields=gid,name,due_on,projects,projects.name,projects.color&limit=100`
+    `/tasks?workspace=${ws}&assignee=${me.gid}&completed_since=now&opt_fields=gid,name,due_on,notes,projects,projects.name,projects.color&limit=100`
   );
   // Also fetch projects for the add-task modal
   const projects = await asanaFetch(
@@ -133,6 +133,13 @@ async function completeAsanaTask(gid) {
   return asanaFetch(`/tasks/${gid}`, {
     method: 'PUT',
     body: JSON.stringify({ data: { completed: true } }),
+  });
+}
+
+async function updateAsanaTask(gid, data) {
+  return asanaFetch(`/tasks/${gid}`, {
+    method: 'PUT',
+    body: JSON.stringify({ data }),
   });
 }
 
@@ -359,9 +366,9 @@ function renderTasks() {
     const meta = [projectHtml, due].filter(Boolean).join('<span style="color:var(--border)"> · </span>');
 
     html += `
-      <div class="task-item" data-gid="${task.gid}" onclick="completeTask('${task.gid}', this)">
-        <div class="task-check"></div>
-        <div class="task-body">
+      <div class="task-item" data-gid="${task.gid}">
+        <div class="task-check" onclick="completeTask('${task.gid}', this.closest('.task-item'))"></div>
+        <div class="task-body" onclick="openTaskDetail('${task.gid}')">
           <div class="task-name">${task.name}</div>
           ${meta ? `<div class="task-meta" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:3px">${meta}</div>` : ''}
         </div>
@@ -775,6 +782,50 @@ function renderInsights(rows, allRows, from, to, period) {
   `;
 }
 
+// ── Task Detail ───────────────────────────────────────────────────────────────
+function openTaskDetail(gid) {
+  const task = state.tasks.find(t => t.gid === gid);
+  if (!task) return;
+
+  const projectName = task.projects && task.projects.length ? task.projects[0].name : '—';
+  const projectColor = taskProjectColor(task);
+
+  document.getElementById('detail-name').value = task.name;
+  document.getElementById('detail-due').value = task.due_on || '';
+  document.getElementById('detail-notes').value = task.notes || '';
+  document.getElementById('detail-project').innerHTML =
+    `<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:${projectColor};display:inline-block"></span>${projectName}</span>`;
+
+  const modal = document.getElementById('task-detail-modal');
+  modal.dataset.gid = gid;
+  modal.classList.add('open');
+}
+
+function closeTaskDetail() {
+  document.getElementById('task-detail-modal').classList.remove('open');
+}
+
+async function saveTaskDetail() {
+  const modal = document.getElementById('task-detail-modal');
+  const gid = modal.dataset.gid;
+  const name  = document.getElementById('detail-name').value.trim();
+  const due   = document.getElementById('detail-due').value || null;
+  const notes = document.getElementById('detail-notes').value;
+
+  if (!name) { showToast('Naam is verplicht'); return; }
+
+  try {
+    await updateAsanaTask(gid, { name, due_on: due, notes });
+    const task = state.tasks.find(t => t.gid === gid);
+    if (task) { task.name = name; task.due_on = due; task.notes = notes; }
+    renderTasks();
+    closeTaskDetail();
+    showToast('✓ Taak bijgewerkt');
+  } catch(e) {
+    showToast('⚠ Opslaan mislukt');
+  }
+}
+
 // ── Settings Screen ───────────────────────────────────────────────────────────
 function populateSettingsFields() {
   document.getElementById('sb-url').value = cfg.sbUrl;
@@ -920,9 +971,12 @@ function initListeners() {
   // Add task button
   document.getElementById('add-task-btn').addEventListener('click', openModal);
 
-  // Close modal on overlay click
+  // Close modals on overlay click
   document.getElementById('task-modal').addEventListener('click', e => {
     if (e.target === document.getElementById('task-modal')) closeModal();
+  });
+  document.getElementById('task-detail-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('task-detail-modal')) closeTaskDetail();
   });
 }
 

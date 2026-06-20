@@ -479,7 +479,8 @@ textarea::placeholder { color: var(--text-muted); }
   font-size: 0.65rem;
 }
 
-.task-body { flex: 1; min-width: 0; }
+.task-body { flex: 1; min-width: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.task-body:active { opacity: 0.6; }
 .task-name { font-size: 0.92rem; color: var(--text); line-height: 1.4; font-weight: 400; }
 .task-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 3px; }
 .task-due-overdue { color: var(--danger); }
@@ -512,7 +513,26 @@ textarea::placeholder { color: var(--text-muted); }
 }
 
 .modal-overlay.open .modal { transform: translateY(0); }
-.modal h2 { font-size: 1rem; font-weight: 600; margin-bottom: 20px; }
+.modal h2 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
+
+.modal-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin: 14px 0 5px;
+}
+
+.detail-project-tag {
+  font-size: 0.88rem;
+  color: var(--text-sub);
+  padding: 10px 14px;
+  background: var(--bg-2);
+  border-radius: 10px;
+  margin-bottom: 2px;
+}
 
 .modal input, .modal select {
   width: 100%;

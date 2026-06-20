@@ -230,6 +230,25 @@
   </nav>
 </div>
 
+<!-- ── Task Detail Modal ── -->
+<div class="modal-overlay" id="task-detail-modal">
+  <div class="modal">
+    <h2>Taak</h2>
+    <label class="modal-label">Naam</label>
+    <input type="text" id="detail-name">
+    <label class="modal-label">Deadline</label>
+    <input type="date" id="detail-due">
+    <label class="modal-label">Project</label>
+    <div id="detail-project" class="detail-project-tag"></div>
+    <label class="modal-label">Notities</label>
+    <textarea id="detail-notes" placeholder="—" style="min-height:80px"></textarea>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeTaskDetail()">Sluiten</button>
+      <button class="save-btn" onclick="saveTaskDetail()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Add Task Modal ── -->
 <div class="modal-overlay" id="task-modal">
   <div class="modal">
