@@ -466,15 +466,39 @@ async function loadInsights() {
 
   // Determine date range from active period button
   const activePeriod = document.querySelector('.period-btn.active');
-  const period = activePeriod ? activePeriod.dataset.period : '7';
+  const period = activePeriod ? activePeriod.dataset.period : 'week';
   let from, to;
   to = todayStr();
 
-  if (period === 'custom') {
+  const getMonday = (d) => {
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const m = new Date(d);
+    m.setDate(d.getDate() + diff);
+    return `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}-${String(m.getDate()).padStart(2,'0')}`;
+  };
+
+  if (period === 'week') {
+    from = getMonday(new Date());
+    to   = todayStr();
+  } else if (period === 'lastweek') {
+    const lastMon = new Date();
+    lastMon.setDate(lastMon.getDate() - 7);
+    from = getMonday(lastMon);
+    const lastSun = new Date(from);
+    lastSun.setDate(lastSun.getDate() + 6);
+    to = `${lastSun.getFullYear()}-${String(lastSun.getMonth()+1).padStart(2,'0')}-${String(lastSun.getDate()).padStart(2,'0')}`;
+  } else if (period === 'month') {
+    const now = new Date();
+    from = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+    to   = todayStr();
+  } else if (period === '3months') {
+    from = offsetDate(todayStr(), -89);
+  } else if (period === '6months') {
+    from = offsetDate(todayStr(), -179);
+  } else if (period === 'custom') {
     from = document.getElementById('range-from').value || offsetDate(todayStr(), -6);
     to   = document.getElementById('range-to').value   || todayStr();
-  } else {
-    from = offsetDate(todayStr(), -(+period - 1));
   }
 
   try {
@@ -600,10 +624,13 @@ function renderInsights(rows, allRows, from, to, period) {
     </div>
   `).join('');
 
-  const periodLabel = period === 'custom' ? `${from} – ${to}` :
-    period === '7' ? 'afgelopen 7 dagen' :
-    period === '30' ? 'afgelopen maand' :
-    period === '90' ? 'afgelopen 3 maanden' : 'afgelopen 6 maanden';
+  const periodLabel =
+    period === 'week'     ? 'deze week' :
+    period === 'lastweek' ? 'vorige week' :
+    period === 'month'    ? 'deze maand' :
+    period === '3months'  ? 'afgelopen 3 maanden' :
+    period === '6months'  ? 'afgelopen 6 maanden' :
+    `${from} – ${to}`;
 
   document.getElementById('insights-content').innerHTML = `
     <div class="insight-card">
@@ -782,7 +809,7 @@ function initListeners() {
       if (btn.dataset.period === 'custom') {
         customRange.style.display = 'block';
         if (!document.getElementById('range-from').value) {
-          document.getElementById('range-from').value = offsetDate(todayStr(), -29);
+          document.getElementById('range-from').value = offsetDate(todayStr(), -6);
           document.getElementById('range-to').value = todayStr();
         }
       } else {
