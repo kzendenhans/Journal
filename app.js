@@ -510,21 +510,48 @@ function renderInsights(rows, allRows, from, to, period) {
   const streakRows  = allRows[0] && allRows[0].date === todayStr() && todayEmpty(allRows[0]) ? allRows.slice(1) : allRows;
   const n = dataRows.length;
 
-  // ── Essentials: frequentie per periode ──
+  // ── Weekdoelen ──
+  const GOALS = { gym: 3, gewerkt: 5, geklust: 7, geschreven: 7 };
+  const GOAL_LABELS = { gym: '3 d/week', gewerkt: '5 d/week', geklust: '7 d/week', geschreven: '7 d/week' };
+
+  const getMondayStr = () => {
+    const d = new Date();
+    const diff = d.getDay() === 0 ? -6 : 1 - d.getDay();
+    d.setDate(d.getDate() + diff);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  };
+  const weekStart = getMondayStr();
+
+  const weekRows = streakRows.filter(r => r.date >= weekStart);
+
+  const weekGoalHtml = essentials.map(k => {
+    const count = weekRows.filter(r => r[k]).length;
+    const goal  = GOALS[k];
+    const pct   = Math.min(100, Math.round(count / goal * 100));
+    const done  = count >= goal;
+    const cls   = done ? 'essential' : '';
+    return `
+      <div class="habit-bar-row">
+        <div class="habit-bar-label">${labels[k]}</div>
+        <div class="habit-bar-track">
+          <div class="habit-bar-fill ${cls}" style="width:${pct}%"></div>
+        </div>
+        <div class="habit-bar-pct" style="color:${done ? 'var(--success)' : 'var(--text-muted)'}">
+          ${count}/${goal}
+        </div>
+      </div>`;
+  }).join('');
+
+  // ── Essentials: frequentie per geselecteerde periode ──
   const periodDays = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
 
   const freqHtml = essentials.map(k => {
     const count = dataRows.filter(r => r[k]).length;
-    const gymColor = k === 'gym'
-      ? (count >= Math.round(periodDays / 7 * 5) ? 'var(--success)'
-        : count >= Math.round(periodDays / 7 * 3) ? 'var(--accent)'
-        : 'var(--danger)')
-      : 'var(--text)';
     return `
       <div class="streak-item">
         <div class="streak-name">${labels[k]}</div>
         <div style="display:flex;align-items:baseline;gap:4px">
-          <div class="streak-count" style="color:${gymColor}">${count}</div>
+          <div class="streak-count">${count}</div>
           <div class="streak-label">/ ${periodDays} d</div>
         </div>
       </div>`;
@@ -580,7 +607,12 @@ function renderInsights(rows, allRows, from, to, period) {
 
   document.getElementById('insights-content').innerHTML = `
     <div class="insight-card">
-      <h3>Essentials — frequentie</h3>
+      <h3>Deze week</h3>
+      ${weekGoalHtml}
+    </div>
+
+    <div class="insight-card">
+      <h3>Essentials — ${periodLabel}</h3>
       <div class="streak-grid">${streakHtml}</div>
     </div>
 
