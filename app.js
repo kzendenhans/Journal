@@ -818,7 +818,7 @@ function renderInsights(rows, allRows, from, to, period) {
       </div>`;
   }
 
-  const bonusBars = bonuses.map(k => barHtml(k, '')).join('');
+  const bonusBars = bonuses.map(k => barHtml(k, 'bonus')).join('');
   const badBars   = bad.map(k    => barHtml(k, 'bad')).join('');
 
   // ── Gemiddelden + grafiekdata ──

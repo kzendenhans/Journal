@@ -12,6 +12,8 @@
   --text-muted: #9a948c;
   --accent: #8b7355;
   --accent-bg: rgba(139, 115, 85, 0.08);
+  --bonus: #5b6fa0;
+  --bonus-bg: rgba(91, 111, 160, 0.08);
   --danger: #a05b5b;
   --danger-bg: rgba(160, 91, 91, 0.08);
   --success: #4a7c59;
@@ -28,6 +30,8 @@
   --text-muted: #5a5450;
   --accent: #c4a882;
   --accent-bg: rgba(196, 168, 130, 0.10);
+  --bonus: #7d93c8;
+  --bonus-bg: rgba(125, 147, 200, 0.10);
   --danger: #c28080;
   --danger-bg: rgba(194, 128, 128, 0.10);
   --success: #6aaa7e;
@@ -196,8 +200,8 @@ main {
 .habit-btn:active { opacity: 0.7; }
 
 .habit-btn.active {
-  background: var(--accent-bg);
-  color: var(--accent);
+  background: var(--bonus-bg);
+  color: var(--bonus);
 }
 
 .habit-btn.essential.active {
@@ -228,8 +232,8 @@ main {
 }
 
 .habit-btn.active .habit-check {
-  border-color: var(--accent);
-  background: var(--accent);
+  border-color: var(--bonus);
+  background: var(--bonus);
   color: white;
 }
 
@@ -650,6 +654,7 @@ textarea::placeholder { color: var(--text-muted); }
 }
 
 .habit-bar-fill.essential { background: var(--success); }
+.habit-bar-fill.bonus { background: var(--bonus); }
 .habit-bar-fill.bad { background: var(--danger); }
 
 .habit-bar-pct {
