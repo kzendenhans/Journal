@@ -59,7 +59,7 @@ main {
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
+  padding-bottom: calc(var(--nav-h) + min(env(safe-area-inset-bottom), 10px) + 16px);
 }
 
 .screen { display: none; padding: 0 20px; }
@@ -129,13 +129,13 @@ main {
   bottom: 0;
   left: 0;
   right: 0;
-  height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  height: calc(var(--nav-h) + min(env(safe-area-inset-bottom), 10px));
   background: var(--bg);
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: min(env(safe-area-inset-bottom), 10px);
   z-index: 100;
   transition: background 0.4s;
 }
@@ -420,7 +420,7 @@ textarea::placeholder { color: var(--text-muted); }
 /* ── Toast ── */
 .toast {
   position: fixed;
-  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
+  bottom: calc(var(--nav-h) + min(env(safe-area-inset-bottom), 10px) + 16px);
   left: 50%;
   transform: translateX(-50%) translateY(10px);
   background: var(--text);
@@ -902,7 +902,7 @@ textarea::placeholder { color: var(--text-muted); }
 /* ── Undo bar ── */
 .undo-bar {
   position: fixed;
-  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px);
+  bottom: calc(var(--nav-h) + min(env(safe-area-inset-bottom), 10px) + 12px);
   left: 16px;
   right: 16px;
   background: var(--text);
