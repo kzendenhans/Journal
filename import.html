@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Habit Tracker Import</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #f6f3ee; color: #1a1916; padding: 24px; max-width: 600px; margin: 0 auto; }
+  h1 { font-size: 1.2rem; margin-bottom: 4px; }
+  p { font-size: 0.85rem; color: #9a948c; margin-bottom: 24px; }
+  label { display: block; font-size: 0.78rem; color: #9a948c; margin-bottom: 4px; margin-top: 14px; }
+  input { width: 100%; padding: 10px 12px; border: 1px solid #ddd9d2; border-radius: 8px; font-size: 0.9rem; background: #fff; color: #1a1916; box-sizing: border-box; }
+  button { margin-top: 20px; width: 100%; padding: 14px; background: #5b6fa0; color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 500; cursor: pointer; }
+  button:disabled { opacity: 0.4; cursor: default; }
+  #log { margin-top: 20px; background: #fff; border: 1px solid #ddd9d2; border-radius: 10px; padding: 14px; font-size: 0.82rem; font-family: monospace; line-height: 1.7; min-height: 60px; white-space: pre-wrap; }
+  .ok { color: #4a7c59; }
+  .err { color: #a05b5b; }
+  .info { color: #5b6fa0; }
+</style>
+</head>
+<body>
+<h1>Habit Tracker Import</h1>
+<p>Importeert alle maandtabs (jan–jun 2026) naar Supabase.</p>
+
+<label>Supabase Project URL</label>
+<input id="sb-url" type="url" placeholder="https://xxxx.supabase.co">
+
+<label>Supabase Anon Key</label>
+<input id="sb-key" type="password" placeholder="eyJ…">
+
+<button id="btn" onclick="runImport()">Start import</button>
+<div id="log"></div>
+
+<script>
+const SHEET_ID = '1H-v33CiLyoyHes4GbZMsrwMNhqJeOnonZCQqcFxIofw';
+
+const MONTHS = [
+  { name: 'Januari 2026',  gid: 0,          year: 2026, month: 1 },
+  { name: 'Februari 2026', gid: 172302853,   year: 2026, month: 2 },
+  { name: 'Maart 2026',    gid: 1264851430,  year: 2026, month: 3 },
+  { name: 'April 2026',    gid: 1175633918,  year: 2026, month: 4 },
+  { name: 'Mei 2026',      gid: 2067809099,  year: 2026, month: 5 },
+  { name: 'Juni 2026',     gid: 1234435434,  year: 2026, month: 6 },
+];
+
+const HABIT_MAP = {
+  'bewogen':            'gym',
+  'gewerkt':            'gewerkt',
+  'geklust':            'geklust',
+  'geschreven':         'geschreven',
+  'geleest':            'geleest',
+  'gemediteerd':        'gemediteerd',
+  'tijd met anderen':   'tijd_met_anderen',
+  'gespeeld':           'gespeeld',
+  'te veel/weinig eten':'te_veel_weinig_eten',
+  'gedoomscrolled':     'gedoomscrolled',
+  'gemasturbeerd':      'gemasturbeerd',
+  'porno gekeken':      'porno_gekeken',
+};
+
+function log(msg, cls='') {
+  const el = document.getElementById('log');
+  el.innerHTML += `<span class="${cls}">${msg}</span>\n`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function parseCSV(text) {
+  return text.split('\n').map(line => {
+    const cols = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"') { inQ = !inQ; }
+      else if (line[i] === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else cur += line[i];
+    }
+    cols.push(cur.trim());
+    return cols;
+  });
+}
+
+function parseMonth(csvText, year, month) {
+  const rows = parseCSV(csvText);
+  const entries = {};
+
+  // Find header row (contains day numbers 1..28+)
+  let habitHeaderIdx = -1;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i][1] === '1' && rows[i][2] === '2') { habitHeaderIdx = i; break; }
+  }
+  if (habitHeaderIdx < 0) return [];
+
+  const dayCount = new Date(year, month, 0).getDate();
+
+  // Init entries for each day
+  for (let d = 1; d <= dayCount; d++) {
+    const pad = n => String(n).padStart(2, '0');
+    entries[d] = {
+      date: `${year}-${pad(month)}-${pad(d)}`,
+      gym: false, gewerkt: false, geklust: false, geschreven: false,
+      geleest: false, gemediteerd: false, tijd_met_anderen: false, gespeeld: false,
+      te_veel_weinig_eten: false, gedoomscrolled: false, gemasturbeerd: false, porno_gekeken: false,
+      slaap: null, gewicht: null,
+    };
+  }
+
+  let mode = 'habits'; // habits | slaap | gewicht
+  let sleepHeaderIdx = -1;
+  let gewichtHeaderIdx = -1;
+
+  for (let r = habitHeaderIdx + 1; r < rows.length; r++) {
+    const row = rows[r];
+    const label = (row[0] || '').toLowerCase().trim();
+
+    if (label === 'slaap') { mode = 'slaap'; sleepHeaderIdx = r; continue; }
+    if (label === 'gewicht') { mode = 'gewicht'; gewichtHeaderIdx = r; continue; }
+
+    if (mode === 'habits') {
+      const col = HABIT_MAP[label];
+      if (!col) continue;
+      for (let d = 1; d <= dayCount; d++) {
+        if (row[d] && row[d].trim() === '1') entries[d][col] = true;
+      }
+    }
+
+    if (mode === 'slaap') {
+      const hours = parseFloat(label);
+      if (!isNaN(hours)) {
+        for (let d = 1; d <= dayCount; d++) {
+          if (row[d] && row[d].trim() === '1') entries[d].slaap = hours;
+        }
+      }
+    }
+
+    if (mode === 'gewicht' && label === 'kg') {
+      for (let d = 1; d <= dayCount; d++) {
+        const v = parseFloat(row[d]);
+        if (!isNaN(v)) entries[d].gewicht = v;
+      }
+    }
+  }
+
+  return Object.values(entries);
+}
+
+async function insertRows(sbUrl, sbKey, rows) {
+  const res = await fetch(`${sbUrl}/rest/v1/habit_entries?on_conflict=date`, {
+    method: 'POST',
+    headers: {
+      'apikey': sbKey,
+      'Authorization': `Bearer ${sbKey}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal,resolution=merge-duplicates',
+    },
+    body: JSON.stringify(rows),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`${res.status}: ${err}`);
+  }
+}
+
+async function runImport() {
+  const sbUrl = document.getElementById('sb-url').value.trim().replace(/\/$/, '');
+  const sbKey = document.getElementById('sb-key').value.trim();
+  if (!sbUrl || !sbKey) { alert('Vul Supabase URL en key in.'); return; }
+
+  const btn = document.getElementById('btn');
+  btn.disabled = true;
+  document.getElementById('log').innerHTML = '';
+  log('Import gestart…', 'info');
+
+  let total = 0;
+
+  for (const m of MONTHS) {
+    log(`\nOphalen: ${m.name}…`, 'info');
+    try {
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${m.gid}`;
+      const res = await fetch(csvUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+
+      const rows = parseMonth(text, m.year, m.month);
+      const nonEmpty = rows.filter(r =>
+        r.gym || r.gewerkt || r.geklust || r.geschreven || r.geleest ||
+        r.gemediteerd || r.tijd_met_anderen || r.gespeeld ||
+        r.te_veel_weinig_eten || r.gedoomscrolled || r.gemasturbeerd ||
+        r.porno_gekeken || r.slaap !== null || r.gewicht !== null
+      );
+
+      if (!nonEmpty.length) { log(`  Geen data gevonden, overgeslagen.`); continue; }
+
+      await insertRows(sbUrl, sbKey, rows); // insert all days (incl. empty) to avoid gaps
+      total += nonEmpty.length;
+      log(`  ✓ ${nonEmpty.length} dagen met data ingevoerd (${rows.length} dagen totaal)`, 'ok');
+    } catch (e) {
+      log(`  ✗ Fout: ${e.message}`, 'err');
+    }
+  }
+
+  log(`\nKlaar. ${total} dagen met data geïmporteerd.`, 'ok');
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
