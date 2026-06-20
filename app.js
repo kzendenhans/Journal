@@ -336,82 +336,100 @@ async function loadTasks() {
 function renderTasks() {
   const container = document.getElementById('tasks-content');
   if (!state.tasks.length) {
-    container.innerHTML = `<div class="empty">Geen openstaande taken 🎉</div>`;
+    container.innerHTML = `<div class="empty">Geen openstaande taken</div>`;
     return;
   }
 
-  // Group by project
-  const groups = new Map();
-  groups.set('__none__', { name: 'Geen project', color: '#64748b', tasks: [] });
-
-  state.tasks.forEach(task => {
-    if (task.projects && task.projects.length) {
-      const p = task.projects[0];
-      if (!groups.has(p.gid)) {
-        groups.set(p.gid, { name: p.name, color: PROJECT_COLORS[p.color] || '#64748b', tasks: [] });
-      }
-      groups.get(p.gid).tasks.push(task);
-    } else {
-      groups.get('__none__').tasks.push(task);
-    }
+  // Sort by deadline: overdue/today first, then upcoming, no date last
+  const sorted = [...state.tasks].sort((a, b) => {
+    if (!a.due_on && !b.due_on) return 0;
+    if (!a.due_on) return 1;
+    if (!b.due_on) return -1;
+    return a.due_on < b.due_on ? -1 : 1;
   });
 
   let html = '';
-  groups.forEach((group, gid) => {
-    if (!group.tasks.length) return;
+  sorted.forEach(task => {
+    const projectName = task.projects && task.projects.length ? task.projects[0].name : '';
+    const projectColor = taskProjectColor(task);
+    const projectHtml = projectName
+      ? `<span style="display:inline-flex;align-items:center;gap:4px;color:var(--text-muted)"><span style="width:5px;height:5px;border-radius:50%;background:${projectColor};display:inline-block;flex-shrink:0"></span>${projectName}</span>`
+      : '';
+    const due = dueLabelHtml(task.due_on);
+    const meta = [projectHtml, due].filter(Boolean).join('<span style="color:var(--border)"> · </span>');
+
     html += `
-      <div class="project-group">
-        <div class="project-header">
-          <div class="project-dot" style="background:${group.color}"></div>
-          <div class="project-name">${group.name}</div>
+      <div class="task-item" data-gid="${task.gid}" onclick="completeTask('${task.gid}', this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">${task.name}</div>
+          ${meta ? `<div class="task-meta" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:3px">${meta}</div>` : ''}
         </div>
-    `;
-    group.tasks.forEach(task => {
-      const projectStr = task.projects && task.projects.length ? task.projects[0].name : '';
-      html += `
-        <div class="task-item" data-gid="${task.gid}" onclick="completeTask('${task.gid}', this)">
-          <div class="task-check"></div>
-          <div class="task-body">
-            <div class="task-name">${task.name}</div>
-            ${dueLabelHtml(task.due_on)}
-          </div>
-        </div>
-      `;
-    });
-    html += `</div>`;
+      </div>`;
   });
 
   container.innerHTML = html;
 }
 
-async function completeTask(gid, el) {
+let _pending = null;
+
+async function _commitTask(gid, el, checkEl) {
+  try {
+    await completeAsanaTask(gid);
+    el.remove();
+    state.tasks = state.tasks.filter(t => t.gid !== gid);
+    if (!document.querySelectorAll('.task-item').length) {
+      document.getElementById('tasks-content').innerHTML = `<div class="empty">Geen openstaande taken</div>`;
+    }
+  } catch(e) {
+    el.classList.remove('completing');
+    checkEl.textContent = '';
+    checkEl.style.cssText = '';
+    showToast('⚠ Kan taak niet afvinken');
+  }
+}
+
+function _clearPending(commit) {
+  if (!_pending) return;
+  clearTimeout(_pending.timerId);
+  clearInterval(_pending.countdownId);
+  document.getElementById('undo-bar').classList.remove('show');
+  const { gid, el, checkEl } = _pending;
+  _pending = null;
+  if (commit) {
+    _commitTask(gid, el, checkEl);
+  } else {
+    el.classList.remove('completing');
+    checkEl.textContent = '';
+    checkEl.style.cssText = '';
+  }
+}
+
+function completeTask(gid, el) {
+  if (el.classList.contains('completing')) return;
+  if (_pending) _clearPending(true);
+
   el.classList.add('completing');
   const checkEl = el.querySelector('.task-check');
   checkEl.textContent = '✓';
-  checkEl.style.borderColor = 'var(--success)';
-  checkEl.style.background = 'var(--success-glow)';
-  checkEl.style.color = 'var(--success)';
+  checkEl.style.cssText = 'border-color:var(--success);background:rgba(74,124,89,0.12);color:var(--success)';
 
-  try {
-    await completeAsanaTask(gid);
-    setTimeout(() => {
-      el.remove();
-      state.tasks = state.tasks.filter(t => t.gid !== gid);
-      if (!document.querySelectorAll('.task-item').length) {
-        document.getElementById('tasks-content').innerHTML = `<div class="empty">Geen openstaande taken 🎉</div>`;
-      }
-      // Remove empty project groups
-      document.querySelectorAll('.project-group').forEach(g => {
-        if (!g.querySelectorAll('.task-item').length) g.remove();
-      });
-    }, 400);
-    showToast('✓ Taak afgevinkt');
-  } catch (e) {
-    el.classList.remove('completing');
-    checkEl.textContent = '';
-    checkEl.style = '';
-    showToast('⚠ Kan taak niet afvinken');
-  }
+  let secs = 7;
+  const labelEl = document.getElementById('undo-label');
+  labelEl.textContent = `Afgevinkt (${secs}s)`;
+  document.getElementById('undo-bar').classList.add('show');
+
+  const countdownId = setInterval(() => {
+    secs--;
+    if (secs > 0) labelEl.textContent = `Afgevinkt (${secs}s)`;
+  }, 1000);
+
+  const timerId = setTimeout(() => _clearPending(true), 7000);
+  _pending = { gid, el, checkEl, timerId, countdownId };
+}
+
+function undoCompleteTask() {
+  _clearPending(false);
 }
 
 function populateProjectSelect() {
