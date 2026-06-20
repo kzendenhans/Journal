@@ -1,5 +1,5 @@
 const CACHE = 'dagboek-v1';
-const ASSETS = ['/', '/index.html', '/style.css', '/app.js', '/manifest.json'];
+const ASSETS = ['/Journal/', '/Journal/index.html', '/Journal/style.css', '/Journal/app.js', '/Journal/manifest.json'];
 
 self.addEventListener('install', e => e.waitUntil(
   caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())
