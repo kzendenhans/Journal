@@ -178,6 +178,15 @@ main {
   color: var(--accent);
 }
 
+.habit-btn.essential.active {
+  background: rgba(74, 124, 89, 0.08);
+  color: var(--success);
+}
+
+[data-theme="dark"] .habit-btn.essential.active {
+  background: rgba(106, 170, 126, 0.10);
+}
+
 .habit-btn.bad.active {
   background: var(--danger-bg);
   color: var(--danger);
@@ -199,6 +208,12 @@ main {
 .habit-btn.active .habit-check {
   border-color: var(--accent);
   background: var(--accent);
+  color: white;
+}
+
+.habit-btn.essential.active .habit-check {
+  border-color: var(--success);
+  background: var(--success);
   color: white;
 }
 
