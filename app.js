@@ -478,14 +478,17 @@ async function loadInsights() {
   }
 
   try {
-    const rows = await sbFetch(`/habit_entries?date=gte.${from}&date=lte.${to}&order=date.desc&limit=500`);
-    renderInsights(rows || [], from, to, period);
+    const [periodRows, allRows] = await Promise.all([
+      sbFetch(`/habit_entries?date=gte.${from}&date=lte.${to}&order=date.desc&limit=500`),
+      sbFetch(`/habit_entries?order=date.desc&limit=500`),
+    ]);
+    renderInsights(periodRows || [], allRows || [], from, to, period);
   } catch(e) {
     container.innerHTML = `<div class="empty">⚠ Kan data niet laden.</div>`;
   }
 }
 
-function renderInsights(rows, from, to, period) {
+function renderInsights(rows, allRows, from, to, period) {
   if (!rows.length) {
     document.getElementById('insights-content').innerHTML = `<div class="empty">Nog geen data voor deze periode.</div>`;
     return;
@@ -500,17 +503,18 @@ function renderInsights(rows, from, to, period) {
     te_veel_weinig_eten:'Te veel/weinig', gedoomscrolled:'Doomscroll', gemasturbeerd:'Masturb.', porno_gekeken:'Porno'
   };
 
-  // Skip today if empty
+  // Skip today if empty (for both sets)
   const boolKeys = [...essentials, ...bonuses, ...bad];
   const todayEmpty = r => boolKeys.every(k => !r[k]) && !r.slaap && !r.gewicht && !r.mood_emoji;
-  const dataRows = rows[0] && rows[0].date === todayStr() && todayEmpty(rows[0]) ? rows.slice(1) : rows;
+  const dataRows    = rows[0]    && rows[0].date    === todayStr() && todayEmpty(rows[0])    ? rows.slice(1)    : rows;
+  const streakRows  = allRows[0] && allRows[0].date === todayStr() && todayEmpty(allRows[0]) ? allRows.slice(1) : allRows;
   const n = dataRows.length;
 
-  // ── Streaks (altijd huidig, niet periode-afhankelijk) ──
+  // ── Streaks (berekend vanuit alle data, niet beperkt tot periode) ──
   const streaks = {};
   [...essentials, ...bonuses].forEach(k => {
     let s = 0;
-    for (const r of dataRows) { if (r[k]) s++; else break; }
+    for (const r of streakRows) { if (r[k]) s++; else break; }
     streaks[k] = s;
   });
 
