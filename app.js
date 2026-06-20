@@ -512,13 +512,38 @@ function renderInsights(rows, allRows, from, to, period) {
 
   // ── Streaks (berekend vanuit alle data, niet beperkt tot periode) ──
   const streaks = {};
-  [...essentials, ...bonuses].forEach(k => {
+  ['gewerkt','geklust','geschreven'].forEach(k => {
     let s = 0;
     for (const r of streakRows) { if (r[k]) s++; else break; }
     streaks[k] = s;
   });
 
-  const streakHtml = essentials.map(k => `
+  // Gym: wekelijkse frequentie in plaats van reeks
+  const mondayOfWeek = () => {
+    const d = new Date();
+    const day = d.getDay(); // 0=zo, 1=ma
+    const diff = (day === 0 ? -6 : 1 - day);
+    d.setDate(d.getDate() + diff);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  };
+  const weekStart = mondayOfWeek();
+  const gymThisWeek = streakRows.filter(r => r.date >= weekStart && r.gym).length;
+
+  const totalWeeks = Math.max(1, (allRows.length / 7));
+  const gymTotal = allRows.filter(r => r.gym).length;
+  const gymAvgPerWeek = (gymTotal / totalWeeks).toFixed(1);
+
+  const gymColor = gymThisWeek >= 5 ? 'var(--success)' : gymThisWeek >= 3 ? 'var(--accent)' : 'var(--danger)';
+
+  const streakHtml = `
+    <div class="streak-item" style="grid-column:span 2">
+      <div class="streak-name">Gym — deze week</div>
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <div class="streak-count" style="color:${gymColor}">${gymThisWeek}</div>
+        <div class="streak-label">/ 5 dagen &nbsp;·&nbsp; gem. ${gymAvgPerWeek}/week</div>
+      </div>
+    </div>
+  ` + ['gewerkt','geklust','geschreven'].map(k => `
     <div class="streak-item">
       <div class="streak-name">${labels[k]}</div>
       <div class="streak-count">${streaks[k]}</div>
