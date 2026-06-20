@@ -10,8 +10,8 @@
   --text: #1a1916;
   --text-sub: #4a4741;
   --text-muted: #9a948c;
-  --accent: #5b6fa0;
-  --accent-bg: rgba(91, 111, 160, 0.08);
+  --accent: #8b7355;
+  --accent-bg: rgba(139, 115, 85, 0.08);
   --danger: #a05b5b;
   --danger-bg: rgba(160, 91, 91, 0.08);
   --success: #4a7c59;
@@ -26,8 +26,8 @@
   --text: #e8e3db;
   --text-sub: #a8a29a;
   --text-muted: #5a5450;
-  --accent: #7d93c8;
-  --accent-bg: rgba(125, 147, 200, 0.10);
+  --accent: #c4a882;
+  --accent-bg: rgba(196, 168, 130, 0.10);
   --danger: #c28080;
   --danger-bg: rgba(194, 128, 128, 0.10);
   --success: #6aaa7e;
