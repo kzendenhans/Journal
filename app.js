@@ -414,7 +414,7 @@ function completeTask(gid, el) {
   checkEl.textContent = '✓';
   checkEl.style.cssText = 'border-color:var(--success);background:rgba(74,124,89,0.12);color:var(--success)';
 
-  let secs = 7;
+  let secs = 5;
   const labelEl = document.getElementById('undo-label');
   labelEl.textContent = `Afgevinkt (${secs}s)`;
   document.getElementById('undo-bar').classList.add('show');
@@ -424,7 +424,7 @@ function completeTask(gid, el) {
     if (secs > 0) labelEl.textContent = `Afgevinkt (${secs}s)`;
   }, 1000);
 
-  const timerId = setTimeout(() => _clearPending(true), 7000);
+  const timerId = setTimeout(() => _clearPending(true), 5000);
   _pending = { gid, el, checkEl, timerId, countdownId };
 }
 
