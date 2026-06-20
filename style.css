@@ -17,7 +17,7 @@
   --danger: #a05b5b;
   --danger-bg: rgba(160, 91, 91, 0.08);
   --success: #4a7c59;
-  --nav-h: 44px;
+  --nav-h: 40px;
 }
 
 [data-theme="dark"] {
@@ -156,8 +156,8 @@ main {
 }
 
 .nav-item.active { color: var(--accent); }
-.nav-icon { font-size: 1.1rem; }
-.nav-label { font-size: 0.6rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+.nav-icon { font-size: 1.3rem; }
+.nav-label { display: none; }
 
 /* ── Section headers ── */
 .habit-section { margin-bottom: 28px; }
