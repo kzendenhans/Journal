@@ -28,6 +28,7 @@
 <label>Supabase Anon Key</label>
 <input id="sb-key" type="password" placeholder="eyJ…">
 
+<button id="btn-test" onclick="runTest()">Test: toon parsed data (geen opslaan)</button>
 <button id="btn" onclick="runImport()">Start import</button>
 <div id="log"></div>
 
@@ -205,6 +206,46 @@ function hasData(r) {
     r.te_veel_weinig_eten || r.gedoomscrolled || r.gemasturbeerd ||
     r.porno_gekeken || r.slaap !== null || r.gewicht !== null ||
     r.mood_emoji !== null || r.blij || r.bang || r.boos || r.verdrietig;
+}
+
+async function runTest() {
+  const btn = document.getElementById('btn-test');
+  btn.disabled = true;
+  document.getElementById('log').innerHTML = '';
+  log('Ophalen en parsen (geen opslaan)…', 'info');
+
+  for (const m of MONTHS) {
+    log(`\n── ${m.name} ──`, 'info');
+    try {
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${m.gid}`;
+      const res = await fetch(csvUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+
+      const rows = parseMonth(text, m.year, m.month);
+      const gymDays = rows.filter(r => r.gym).map(r => r.date);
+      const gewerktDays = rows.filter(r => r.gewerkt).map(r => r.date.slice(-2));
+      const withData = rows.filter(hasData);
+
+      log(`  Dagen met data: ${withData.length}`, 'ok');
+      log(`  Gym (${gymDays.length} dagen): ${gymDays.map(d => d.slice(-2)).join(', ') || '(geen)'}`, gymDays.length ? 'ok' : 'err');
+      log(`  Gewerkt (${gewerktDays.length} dagen): ${gewerktDays.join(', ') || '(geen)'}`, gewerktDays.length ? 'ok' : 'err');
+
+      // Show first 5 rows raw for debugging
+      const rawRows = parseCSV(text);
+      log(`  Eerste 5 rijen CSV (raw):`, 'info');
+      for (let i = 0; i < Math.min(rawRows.length, 8); i++) {
+        const r = rawRows[i];
+        if (r.every(c => !c)) continue;
+        log(`    [${i}] "${r[0]}" | d1="${r[1]}" | d2="${r[2]}" | d3="${r[3]}"`, '');
+      }
+    } catch (e) {
+      log(`  ✗ Fout: ${e.message}`, 'err');
+    }
+  }
+
+  log('\nTest klaar.', 'ok');
+  btn.disabled = false;
 }
 
 async function runImport() {
