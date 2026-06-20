@@ -534,31 +534,27 @@ function renderInsights(rows, allRows, from, to, period) {
   const streakRows  = allRows[0] && allRows[0].date === todayStr() && todayEmpty(allRows[0]) ? allRows.slice(1) : allRows;
   const n = dataRows.length;
 
-  // ── Weekdoelen ──
-  const GOALS = { gym: 3, gewerkt: 5, geklust: 7, geschreven: 7 };
-  const GOAL_LABELS = { gym: '3 d/week', gewerkt: '5 d/week', geklust: '7 d/week', geschreven: '7 d/week' };
+  // ── Progressiedoelen (schaalt mee met geselecteerde periode) ──
+  const WEEKLY_RATES = { gym: 3/7, gewerkt: 5/7, geklust: 1, geschreven: 1 };
+  const periodGoal = k => Math.round(WEEKLY_RATES[k] * periodDays) || 1;
 
-  const getMondayStr = () => {
-    const d = new Date();
-    const diff = d.getDay() === 0 ? -6 : 1 - d.getDay();
-    d.setDate(d.getDate() + diff);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  };
-  const weekStart = getMondayStr();
-
-  const weekRows = streakRows.filter(r => r.date >= weekStart);
+  const progressTitle =
+    period === 'week'     ? 'Deze week' :
+    period === 'lastweek' ? 'Vorige week' :
+    period === 'month'    ? 'Deze maand' :
+    period === '3months'  ? 'Afgelopen 3 maanden' :
+    period === '6months'  ? 'Afgelopen 6 maanden' : 'Periode';
 
   const weekGoalHtml = essentials.map(k => {
-    const count = weekRows.filter(r => r[k]).length;
-    const goal  = GOALS[k];
+    const count = dataRows.filter(r => r[k]).length;
+    const goal  = periodGoal(k);
     const pct   = Math.min(100, Math.round(count / goal * 100));
     const done  = count >= goal;
-    const cls   = done ? 'essential' : '';
     return `
       <div class="habit-bar-row">
         <div class="habit-bar-label">${labels[k]}</div>
         <div class="habit-bar-track">
-          <div class="habit-bar-fill ${cls}" style="width:${pct}%"></div>
+          <div class="habit-bar-fill essential" style="width:${pct}%; opacity:${done ? 1 : 0.6}"></div>
         </div>
         <div class="habit-bar-pct" style="color:${done ? 'var(--success)' : 'var(--text-muted)'}">
           ${count}/${goal}
@@ -634,7 +630,7 @@ function renderInsights(rows, allRows, from, to, period) {
 
   document.getElementById('insights-content').innerHTML = `
     <div class="insight-card">
-      <h3>Deze week</h3>
+      <h3>${progressTitle}</h3>
       ${weekGoalHtml}
     </div>
 
