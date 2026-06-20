@@ -515,28 +515,55 @@ async function loadInsights() {
   }
 }
 
-function lineChartHtml(vals, color, unit) {
+function lineChartHtml(vals, dates, color) {
   if (vals.length < 2) return `<p style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:8px 0">Te weinig data</p>`;
   const min = Math.min(...vals);
   const max = Math.max(...vals);
   const spread = max - min || 0.1;
-  const W = 280, H = 64, pX = 4, pY = 8;
-  const pts = vals.map((v, i) => {
-    const x = (pX + (i / (vals.length - 1)) * (W - 2 * pX)).toFixed(1);
-    const y = (pY + (1 - (v - min) / spread) * (H - 2 * pY)).toFixed(1);
-    return [x, y];
-  });
+
+  const W = 300, H = 110;
+  const L = 40, R = 6, T = 8, B = 20;
+  const cW = W - L - R, cH = H - T - B;
+
+  const toX = i => L + (vals.length > 1 ? (i / (vals.length - 1)) * cW : cW / 2);
+  const toY = v => T + (1 - (v - min) / spread) * cH;
+
+  const pts = vals.map((v, i) => [+toX(i).toFixed(1), +toY(v).toFixed(1)]);
   const linePoints = pts.map(p => p.join(',')).join(' ');
-  const areaPath = `M${pts[0][0]},${H} ` + pts.map(p => `L${p[0]},${p[1]}`).join(' ') + ` L${pts[pts.length-1][0]},${H} Z`;
-  return `
-    <svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block">
-      <path d="${areaPath}" fill="${color}" opacity="0.1"/>
-      <polyline points="${linePoints}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-    </svg>
-    <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-muted);margin-top:6px">
-      <span>${min.toFixed(1)} ${unit}</span>
-      <span>${max.toFixed(1)} ${unit}</span>
-    </div>`;
+  const areaPath = `M${pts[0][0]},${T + cH} ` + pts.map(p => `L${p[0]},${p[1]}`).join(' ') + ` L${pts[pts.length-1][0]},${T + cH} Z`;
+
+  // Y-axis: 3 ticks (max, mid, min)
+  const yTicks = [max, (min + max) / 2, min];
+  const yHtml = yTicks.map(v => {
+    const y = toY(v).toFixed(1);
+    return `<text x="${L - 5}" y="${y}" text-anchor="end" dominant-baseline="middle" font-size="8.5" fill="var(--text-muted)">${v.toFixed(1)}</text>`
+         + `<line x1="${L - 2}" y1="${y}" x2="${L}" y2="${y}" stroke="var(--border)" stroke-width="0.5"/>`;
+  }).join('');
+
+  // X-axis: up to ~6 evenly spaced labels
+  const maxLabels = 6;
+  const step = Math.max(1, Math.ceil(vals.length / maxLabels));
+  const xIndices = [];
+  for (let i = 0; i < vals.length; i += step) xIndices.push(i);
+  if (xIndices[xIndices.length - 1] !== vals.length - 1) xIndices.push(vals.length - 1);
+
+  const multiMonth = vals.length > 35;
+  const monthNames = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+  const xHtml = xIndices.map(i => {
+    const [, m, d] = dates[i].split('-');
+    const label = multiMonth ? `${monthNames[+m - 1]} ${+d}` : `${+d}`;
+    return `<text x="${toX(i).toFixed(1)}" y="${T + cH + 13}" text-anchor="middle" font-size="8.5" fill="var(--text-muted)">${label}</text>`;
+  }).join('');
+
+  const axes = `<line x1="${L}" y1="${T}" x2="${L}" y2="${T + cH}" stroke="var(--border)" stroke-width="0.5"/>`
+             + `<line x1="${L}" y1="${T + cH}" x2="${W - R}" y2="${T + cH}" stroke="var(--border)" stroke-width="0.5"/>`;
+
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block">
+    ${axes}
+    <path d="${areaPath}" fill="${color}" opacity="0.1"/>
+    <polyline points="${linePoints}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${yHtml}${xHtml}
+  </svg>`;
 }
 
 function renderInsights(rows, allRows, from, to, period) {
@@ -632,14 +659,20 @@ function renderInsights(rows, allRows, from, to, period) {
   const badBars   = bad.map(k    => barHtml(k, 'bad')).join('');
 
   // ── Gemiddelden + grafiekdata ──
-  const sortedRows  = [...dataRows].sort((a, b) => a.date < b.date ? -1 : 1);
-  const sleepVals   = sortedRows.filter(r => r.slaap   != null).map(r => +r.slaap);
-  const weightVals  = sortedRows.filter(r => r.gewicht != null).map(r => +r.gewicht);
+  const sortedRows   = [...dataRows].sort((a, b) => a.date < b.date ? -1 : 1);
+  const sleepData    = sortedRows.filter(r => r.slaap   != null);
+  const weightData   = sortedRows.filter(r => r.gewicht != null);
+  const sleepVals    = sleepData.map(r => +r.slaap);
+  const sleepDates   = sleepData.map(r => r.date);
+  const weightVals   = weightData.map(r => +r.gewicht);
+  const weightDates  = weightData.map(r => r.date);
   const avg = arr => arr.length ? (arr.reduce((a,b) => a+b, 0) / arr.length).toFixed(1) : '–';
   const avgSleep  = avg(sleepVals);
   const avgWeight = avg(weightVals);
   const minWeight = weightVals.length ? Math.min(...weightVals).toFixed(1) : '–';
   const maxWeight = weightVals.length ? Math.max(...weightVals).toFixed(1) : '–';
+  const minSleep  = sleepVals.length  ? Math.min(...sleepVals).toFixed(1)  : '–';
+  const maxSleep  = sleepVals.length  ? Math.max(...sleepVals).toFixed(1)  : '–';
 
   // ── Stemming ──
   const moodEmojis = ['😄','🙂','😐','🙁','😩'];
@@ -714,12 +747,12 @@ function renderInsights(rows, allRows, from, to, period) {
 
     <div class="insight-card">
       <h3>Slaap — ${periodLabel}</h3>
-      ${lineChartHtml(sleepVals, 'var(--accent)', 'u')}
+      ${lineChartHtml(sleepVals, sleepDates, 'var(--accent)')}
     </div>
 
     <div class="insight-card">
       <h3>Gewicht — ${periodLabel}</h3>
-      ${lineChartHtml(weightVals, 'var(--success)', 'kg')}
+      ${lineChartHtml(weightVals, weightDates, 'var(--success)')}
     </div>
   `;
 }
