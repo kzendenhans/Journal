@@ -134,18 +134,19 @@
 
     <!-- ── Insights Screen ── -->
     <section id="screen-insights" class="screen">
-      <div class="screen-header">
-        <h1>Inzichten</h1>
-        <button class="theme-btn theme-toggle-btn" title="Dag/nacht">○</button>
-      </div>
-
-      <div class="period-selector">
-        <button class="period-btn active" data-period="week">Deze week</button>
-        <button class="period-btn" data-period="lastweek">Vorige week</button>
-        <button class="period-btn" data-period="month">Deze maand</button>
-        <button class="period-btn" data-period="3months">3 maanden</button>
-        <button class="period-btn" data-period="6months">6 maanden</button>
-        <button class="period-btn" data-period="custom">Aangepast</button>
+      <div class="screen-header screen-header-stacked">
+        <div class="screen-header-row">
+          <h1>Inzichten</h1>
+          <button class="theme-btn theme-toggle-btn" title="Dag/nacht">○</button>
+        </div>
+        <div class="period-selector">
+          <button class="period-btn active" data-period="week">Deze week</button>
+          <button class="period-btn" data-period="lastweek">Vorige week</button>
+          <button class="period-btn" data-period="month">Deze maand</button>
+          <button class="period-btn" data-period="3months">3 maanden</button>
+          <button class="period-btn" data-period="6months">6 maanden</button>
+          <button class="period-btn" data-period="custom">Aangepast</button>
+        </div>
       </div>
 
       <div id="custom-range" style="display:none; margin-bottom:16px; display:none">
@@ -241,10 +242,13 @@
     <label class="modal-label">Project</label>
     <div id="detail-project" class="detail-project-tag"></div>
     <label class="modal-label">Notities</label>
-    <textarea id="detail-notes" placeholder="—" style="min-height:80px"></textarea>
-    <div class="modal-actions">
+    <textarea id="detail-notes" placeholder="—" style="min-height:72px"></textarea>
+    <label class="modal-label">Subtaken</label>
+    <div id="detail-subtasks" class="detail-subtasks"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-danger" onclick="deleteTask()">Verwijder</button>
       <button class="btn-secondary" onclick="closeTaskDetail()">Sluiten</button>
-      <button class="save-btn" onclick="saveTaskDetail()">Opslaan</button>
+      <button class="save-btn" style="flex:1.5" onclick="saveTaskDetail()">Opslaan</button>
     </div>
   </div>
 </div>

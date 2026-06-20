@@ -60,6 +60,7 @@ main {
 
 /* ── Header ── */
 .screen-header {
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -71,6 +72,24 @@ main {
   border-bottom: 1px solid var(--border);
   margin-bottom: 28px;
   transition: background 0.4s;
+}
+
+.screen-header-stacked {
+  flex-direction: column;
+  align-items: stretch;
+  padding-bottom: 12px;
+  gap: 0;
+}
+
+.screen-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+}
+
+.screen-header-stacked .period-selector {
+  margin-bottom: 0;
 }
 
 .screen-header h1 {
@@ -824,6 +843,53 @@ textarea::placeholder { color: var(--text-muted); }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Danger button ── */
+.btn-danger {
+  background: none;
+  border: 1px solid var(--danger);
+  border-radius: 12px;
+  color: var(--danger);
+  font-size: 0.88rem;
+  font-weight: 400;
+  padding: 14px 12px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+
+/* ── Subtask list ── */
+.detail-subtasks {
+  background: var(--bg-2);
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 36px;
+}
+
+.subtask-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+  color: var(--text-sub);
+}
+
+.subtask-item:last-child { border-bottom: none; }
+
+.subtask-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  flex-shrink: 0;
+}
+
+.subtask-dot.done {
+  background: var(--success);
+  border-color: var(--success);
+}
 
 /* ── Undo bar ── */
 .undo-bar {

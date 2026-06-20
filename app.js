@@ -540,10 +540,12 @@ async function loadInsights() {
   }
 }
 
-function lineChartHtml(vals, dates, color) {
+function lineChartHtml(vals, dates, color, target = null) {
   if (vals.length < 2) return `<p style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:8px 0">Te weinig data</p>`;
-  const min = Math.min(...vals);
-  const max = Math.max(...vals);
+
+  let min = Math.min(...vals);
+  let max = Math.max(...vals);
+  if (target !== null) { min = Math.min(min, target); max = Math.max(max, target); }
   const spread = max - min || 0.1;
 
   const W = 300, H = 110;
@@ -556,6 +558,16 @@ function lineChartHtml(vals, dates, color) {
   const pts = vals.map((v, i) => [+toX(i).toFixed(1), +toY(v).toFixed(1)]);
   const linePoints = pts.map(p => p.join(',')).join(' ');
   const areaPath = `M${pts[0][0]},${T + cH} ` + pts.map(p => `L${p[0]},${p[1]}`).join(' ') + ` L${pts[pts.length-1][0]},${T + cH} Z`;
+
+  // Target zone: light red rect below target line + dashed line
+  let targetHtml = '';
+  if (target !== null) {
+    const ty = +toY(target).toFixed(1);
+    const zoneH = (T + cH) - ty;
+    targetHtml =
+      `<rect x="${L}" y="${ty}" width="${cW}" height="${zoneH}" fill="var(--danger)" fill-opacity="0.10"/>`
+    + `<line x1="${L}" y1="${ty}" x2="${W - R}" y2="${ty}" stroke="var(--danger)" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="4,3"/>`;
+  }
 
   // Y-axis: 3 ticks (max, mid, min)
   const yTicks = [max, (min + max) / 2, min];
@@ -585,7 +597,8 @@ function lineChartHtml(vals, dates, color) {
 
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block">
     ${axes}
-    <path d="${areaPath}" fill="${color}" opacity="0.1"/>
+    ${targetHtml}
+    <path d="${areaPath}" fill="${color}" opacity="0.15"/>
     <polyline points="${linePoints}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
     ${yHtml}${xHtml}
   </svg>`;
@@ -772,7 +785,7 @@ function renderInsights(rows, allRows, from, to, period) {
 
     <div class="insight-card">
       <h3>Slaap — ${periodLabel}</h3>
-      ${lineChartHtml(sleepVals, sleepDates, 'var(--accent)')}
+      ${lineChartHtml(sleepVals, sleepDates, 'var(--accent)', 8.0)}
     </div>
 
     <div class="insight-card">
@@ -783,7 +796,7 @@ function renderInsights(rows, allRows, from, to, period) {
 }
 
 // ── Task Detail ───────────────────────────────────────────────────────────────
-function openTaskDetail(gid) {
+async function openTaskDetail(gid) {
   const task = state.tasks.find(t => t.gid === gid);
   if (!task) return;
 
@@ -796,9 +809,55 @@ function openTaskDetail(gid) {
   document.getElementById('detail-project').innerHTML =
     `<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:${projectColor};display:inline-block"></span>${projectName}</span>`;
 
+  // Reset delete button state
+  const delBtn = document.querySelector('#task-detail-modal .btn-danger');
+  if (delBtn) { delBtn.textContent = 'Verwijder'; delete delBtn.dataset.confirm; }
+
   const modal = document.getElementById('task-detail-modal');
   modal.dataset.gid = gid;
   modal.classList.add('open');
+
+  // Load subtasks
+  const subtasksEl = document.getElementById('detail-subtasks');
+  subtasksEl.innerHTML = `<div class="subtask-item" style="color:var(--text-muted)">Laden…</div>`;
+  try {
+    const subs = await asanaFetch(`/tasks/${gid}/subtasks?opt_fields=gid,name,completed&limit=50`);
+    if (!subs || !subs.length) {
+      subtasksEl.innerHTML = `<div class="subtask-item" style="color:var(--text-muted)">Geen subtaken</div>`;
+    } else {
+      subtasksEl.innerHTML = subs.map(s => `
+        <div class="subtask-item">
+          <div class="subtask-dot ${s.completed ? 'done' : ''}"></div>
+          <span style="${s.completed ? 'text-decoration:line-through;opacity:0.45' : ''}">${s.name}</span>
+        </div>`).join('');
+    }
+  } catch(e) {
+    subtasksEl.innerHTML = `<div class="subtask-item" style="color:var(--text-muted)">Kan subtaken niet laden</div>`;
+  }
+}
+
+function deleteTask() {
+  const delBtn = document.querySelector('#task-detail-modal .btn-danger');
+  if (delBtn.dataset.confirm !== 'true') {
+    delBtn.textContent = 'Zeker?';
+    delBtn.dataset.confirm = 'true';
+    setTimeout(() => {
+      if (delBtn.dataset.confirm === 'true') {
+        delBtn.textContent = 'Verwijder';
+        delete delBtn.dataset.confirm;
+      }
+    }, 3000);
+    return;
+  }
+  const gid = document.getElementById('task-detail-modal').dataset.gid;
+  asanaFetch(`/tasks/${gid}`, { method: 'DELETE' })
+    .then(() => {
+      state.tasks = state.tasks.filter(t => t.gid !== gid);
+      renderTasks();
+      closeTaskDetail();
+      showToast('Taak verwijderd');
+    })
+    .catch(() => showToast('⚠ Verwijderen mislukt'));
 }
 
 function closeTaskDetail() {
