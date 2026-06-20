@@ -1,4 +1,4 @@
-const CACHE = 'dagboek-v1';
+const CACHE = 'dagboek-v3';
 const ASSETS = ['/Journal/', '/Journal/index.html', '/Journal/style.css', '/Journal/app.js', '/Journal/manifest.json'];
 
 self.addEventListener('install', e => e.waitUntil(
