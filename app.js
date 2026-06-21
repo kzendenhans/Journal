@@ -53,6 +53,22 @@ function showToast(msg, duration=2500) {
   setTimeout(() => t.classList.remove('show'), duration);
 }
 
+function haptic(ms = 8) {
+  if (navigator.vibrate) navigator.vibrate(ms);
+}
+
+let _autoSaveTimer = null;
+
+function scheduleAutoSave() {
+  if (!cfg.sbUrl || !cfg.sbKey) return;
+  state.dirtyCheckin = true;
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(() => {
+    _autoSaveTimer = null;
+    saveCheckin(true);
+  }, 1500);
+}
+
 function showSettings() {
   navigate('settings');
 }
@@ -213,7 +229,13 @@ function renderCheckin() {
 }
 
 async function loadCheckinForDate(dateStr) {
+  if (_autoSaveTimer !== null) {
+    clearTimeout(_autoSaveTimer);
+    _autoSaveTimer = null;
+    if (state.dirtyCheckin) await saveCheckin(true);
+  }
   state.date = dateStr;
+  state.dirtyCheckin = false;
   state.entry = {};
   state.sleep = 8.0;
   state.weight = null;
@@ -306,16 +328,16 @@ async function loadWeekSummary() {
   }
 }
 
-async function saveCheckin() {
+async function saveCheckin(silent = false) {
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = null;
   if (!cfg.sbUrl || !cfg.sbKey) {
-    showToast('Configureer eerst Supabase');
-    navigate('settings');
+    if (!silent) { showToast('Configureer eerst Supabase'); navigate('settings'); }
     return;
   }
 
   const btn = document.getElementById('save-btn');
-  btn.disabled = true;
-  btn.textContent = 'Opslaan…';
+  if (!silent) { btn.disabled = true; btn.textContent = 'Opslaan…'; }
 
   const data = {
     date: state.date,
@@ -344,14 +366,14 @@ async function saveCheckin() {
 
   try {
     await upsertEntry(data);
-    showToast('✓ Opgeslagen');
+    state.dirtyCheckin = false;
+    if (!silent) showToast('✓ Opgeslagen');
   } catch (e) {
-    showToast('⚠ Opslaan mislukt');
+    if (!silent) showToast('⚠ Opslaan mislukt');
     console.error(e);
   }
 
-  btn.disabled = false;
-  btn.textContent = 'Opslaan';
+  if (!silent) { btn.disabled = false; btn.textContent = 'Opslaan'; }
 }
 
 // ── Tasks Screen ──────────────────────────────────────────────────────────────
@@ -486,7 +508,7 @@ function _clearPending(commit) {
 function completeTask(gid, el) {
   if (el.classList.contains('completing')) return;
   if (_pending) _clearPending(true);
-
+  haptic(12);
   el.classList.add('completing');
   const checkEl = el.querySelector('.task-check');
   checkEl.textContent = '✓';
@@ -1126,6 +1148,8 @@ function initListeners() {
       const key = btn.dataset.key;
       state.entry[key] = !state.entry[key];
       btn.classList.toggle('active', !!state.entry[key]);
+      haptic(8);
+      scheduleAutoSave();
     });
   });
 
@@ -1136,6 +1160,8 @@ function initListeners() {
       document.querySelectorAll('.mood-btn').forEach(b =>
         b.classList.toggle('active', b.dataset.mood === state.mood)
       );
+      haptic(8);
+      scheduleAutoSave();
     });
   });
 
@@ -1145,6 +1171,8 @@ function initListeners() {
       const key = btn.dataset.key;
       state.emotions[key] = !state.emotions[key];
       btn.classList.toggle('active', !!state.emotions[key]);
+      haptic(8);
+      scheduleAutoSave();
     });
   });
 
@@ -1152,21 +1180,27 @@ function initListeners() {
   document.getElementById('sleep-minus').addEventListener('click', () => {
     state.sleep = Math.max(0, +(state.sleep - 0.5).toFixed(1));
     document.getElementById('sleep-value').textContent = state.sleep.toFixed(1);
+    haptic(5);
+    scheduleAutoSave();
   });
 
   document.getElementById('sleep-plus').addEventListener('click', () => {
     state.sleep = Math.min(24, +(state.sleep + 0.5).toFixed(1));
     document.getElementById('sleep-value').textContent = state.sleep.toFixed(1);
+    haptic(5);
+    scheduleAutoSave();
   });
 
   // Weight
   document.getElementById('weight-input').addEventListener('input', e => {
     state.weight = e.target.value ? +e.target.value : null;
+    scheduleAutoSave();
   });
 
   // Notes
   document.getElementById('notes-input').addEventListener('input', e => {
     state.notes = e.target.value;
+    scheduleAutoSave();
   });
 
   // Save
@@ -1231,6 +1265,17 @@ function initListeners() {
   document.getElementById('task-detail-modal').addEventListener('click', e => {
     if (e.target === document.getElementById('task-detail-modal')) closeTaskDetail();
   });
+
+  // Keyboard dismiss: tik buiten invoerveld sluit toetsenbord
+  document.getElementById('main').addEventListener('touchstart', e => {
+    const tag = e.target.tagName;
+    if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+      const active = document.activeElement;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+        active.blur();
+      }
+    }
+  }, { passive: true });
 }
 
 // ── Theme (dag/nacht op basis van uur, overschrijfbaar) ───────────────────────
