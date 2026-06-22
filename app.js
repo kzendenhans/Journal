@@ -1535,21 +1535,27 @@ function initSwipe() {
     if (underEl || underDate === targetDate) return;
     underDate = targetDate;
 
-    // Snapshot: temporarily render target date into real DOM (sync, no fetch),
-    // capture the HTML, then immediately restore current state.
-    const saved = { date: state.date, entry: state.entry, sleep: state.sleep,
-      weight: state.weight, mood: state.mood, emotions: state.emotions, notes: state.notes };
-    state.date = targetDate;
-    state.entry = {}; state.sleep = 8.0; state.weight = null;
-    state.mood = null; state.emotions = {}; state.notes = '';
-    renderCheckin();
-    const html = el.innerHTML;
-    Object.assign(state, saved);
-    renderCheckin();
+    // Clone el off-screen — never touch the live DOM
+    const clone = el.cloneNode(true);
+    const isToday = targetDate === todayStr();
+    const isYesterday = targetDate === offsetDate(todayStr(), -1);
+    const dayNames = ['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'];
+    const d = new Date(targetDate + 'T12:00:00');
+    const titleEl = clone.querySelector('#checkin-title');
+    if (titleEl) titleEl.textContent = isToday ? 'Vandaag' : isYesterday ? 'Gisteren' : dayNames[d.getDay()];
+    const dateEl = clone.querySelector('#checkin-date');
+    if (dateEl) dateEl.textContent = formatDateNL(targetDate);
+    clone.querySelectorAll('.habit-btn').forEach(btn => btn.classList.remove('active'));
+    clone.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('active'));
+    clone.querySelectorAll('.emotion-btn').forEach(btn => btn.classList.remove('active'));
+    const sv = clone.querySelector('#sleep-value');
+    if (sv) sv.textContent = '8.0';
+    const wi = clone.querySelector('#weight-input');
+    if (wi) wi.value = '';
 
     underEl = document.createElement('div');
     underEl.id = 'checkin-bg-card';
-    underEl.innerHTML = html;
+    underEl.innerHTML = clone.innerHTML;
     document.body.appendChild(underEl);
 
     const boolKeys = ['gym','gewerkt','geklust','geschreven','geleest','gemediteerd',
