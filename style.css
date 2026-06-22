@@ -366,18 +366,24 @@ main {
   border-radius: 8px;
   width: 52px;
   height: 48px;
-  font-size: 1.6rem;
   cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
+  transition: background 0.15s, transform 0.15s, color 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
   -webkit-tap-highlight-color: transparent;
+  color: var(--text-sub);
+}
+
+.mood-btn svg {
+  width: 28px;
+  height: 28px;
 }
 
 .mood-btn.active {
   background: var(--accent-bg);
   transform: scale(1.1);
+  color: var(--accent);
 }
 
 .emotion-grid {
