@@ -1637,15 +1637,13 @@ function initSwipe() {
         underEl.style.opacity = '1';
       }
       setTimeout(async () => {
-        // underEl stays visible behind el while real data loads
+        // Load data while el is off-screen (underEl covers the view)
         el.style.transition = 'none';
         el.style.transform = `translateX(${-dir * W()}px)`;
         await loadCheckinForDate(targetDate);
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          el.style.transition = 'transform 0.2s ease';
-          el.style.transform = 'translateX(0)';
-          setTimeout(() => removeUnderCard(false), 210);
-        }));
+        // Snap el to center instantly — no second swipe animation
+        el.style.transform = 'translateX(0)';
+        removeUnderCard(false);
       }, 200);
     }
 
