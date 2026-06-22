@@ -239,9 +239,24 @@
       </div>
 
       <div class="settings-section">
+        <h2>Backup</h2>
+        <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:14px">
+          Sla je instellingen op zodat je ze na een reset snel kunt herstellen.
+        </p>
+        <button class="save-btn" onclick="exportSettings()" style="margin-bottom:10px">Exporteer instellingen</button>
+        <div id="backup-export-box" style="display:none;margin-bottom:14px">
+          <textarea id="backup-output" style="min-height:80px;font-size:0.72rem;font-family:monospace" readonly onclick="this.select()"></textarea>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:6px">Selecteer alles en kopieer — sla op als notitie of stuur naar jezelf.</p>
+        </div>
+        <label style="margin-top:8px">Herstel vanuit backup</label>
+        <textarea id="backup-input" placeholder="Plak hier je backup…" style="min-height:72px;font-size:0.8rem"></textarea>
+        <button class="btn-secondary" onclick="importSettings()" style="width:100%;padding:12px;margin-top:8px">Importeer instellingen</button>
+      </div>
+
+      <div class="settings-section">
         <h2>Over</h2>
         <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.6">
-          Dagboek v1.24<br>
+          Dagboek v1.25<br>
           Data wordt opgeslagen in Supabase.<br>
           Taken worden gesynchroniseerd met Asana.
         </p>
@@ -315,6 +330,6 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="app.js?v=15"></script>
+<script src="app.js?v=16"></script>
 </body>
 </html>

@@ -1211,6 +1211,54 @@ async function testAsana() {
   }
 }
 
+// ── Backup / herstel instellingen ─────────────────────────────────────────────
+function exportSettings() {
+  const data = {
+    sb_url: cfg.sbUrl,
+    sb_key: cfg.sbKey,
+    asana_pat: cfg.asanaPat,
+    cal_urls: cfg.calUrls,
+    notifications_enabled: localStorage.getItem('notifications_enabled') || 'false',
+  };
+  const json = JSON.stringify(data, null, 2);
+
+  if (navigator.share) {
+    navigator.share({ title: 'Dagboek instellingen', text: json }).catch(() => {});
+    return;
+  }
+
+  // Fallback: toon in textarea
+  const box = document.getElementById('backup-export-box');
+  const out = document.getElementById('backup-output');
+  if (box && out) {
+    out.value = json;
+    box.style.display = '';
+    out.select();
+  }
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(json).then(() => showToast('✓ Backup gekopieerd'));
+  }
+}
+
+function importSettings() {
+  const json = (document.getElementById('backup-input').value || '').trim();
+  if (!json) { showToast('Plak eerst een backup'); return; }
+  try {
+    const data = JSON.parse(json);
+    if (data.sb_url !== undefined) cfg.sbUrl = data.sb_url;
+    if (data.sb_key !== undefined) cfg.sbKey = data.sb_key;
+    if (data.asana_pat !== undefined) cfg.asanaPat = data.asana_pat;
+    if (data.cal_urls !== undefined) cfg.calUrls = data.cal_urls;
+    if (data.notifications_enabled !== undefined) localStorage.setItem('notifications_enabled', data.notifications_enabled);
+    document.getElementById('backup-input').value = '';
+    populateSettingsFields();
+    showToast('✓ Instellingen hersteld');
+  } catch(e) {
+    showToast('⚠ Ongeldige backup — controleer de tekst');
+  }
+}
+
 // ── Notifications ─────────────────────────────────────────────────────────────
 function scheduleNotifications() {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
