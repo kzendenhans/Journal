@@ -59,6 +59,14 @@ function haptic(ms = 8) {
   if (navigator.vibrate) navigator.vibrate(ms);
 }
 
+const MOOD_SVG = {
+  '😞': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="8.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><path d="M7.5,17 Q12,12 16.5,17"/></svg>`,
+  '😕': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="8.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><path d="M7.5,16.5 Q12,14 16.5,16.5"/></svg>`,
+  '😐': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="8.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><line x1="7.5" y1="15.5" x2="16.5" y2="15.5"/></svg>`,
+  '🙂': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="8.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.1" fill="currentColor" stroke="none"/><path d="M7.5,15 Q12,18.5 16.5,15"/></svg>`,
+  '😄': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M7.5,10.5 Q8.5,9 9.5,10.5"/><path d="M14.5,10.5 Q15.5,9 16.5,10.5"/><path d="M7,15 Q12,20.5 17,15"/></svg>`,
+};
+
 let _autoSaveTimer = null;
 
 function scheduleAutoSave() {
@@ -947,7 +955,7 @@ function renderInsights(rows, allRows, from, to, period) {
   const maxSleep  = sleepVals.length  ? Math.max(...sleepVals).toFixed(1)  : '–';
 
   // ── Stemming ──
-  const moodEmojis = ['😄','🙂','😐','🙁','😩'];
+  const moodEmojis = ['😞','😕','😐','🙂','😄'];
   const moodCounts = {};
   moodEmojis.forEach(e => { moodCounts[e] = 0; });
   dataRows.forEach(r => { if (r.mood_emoji && moodCounts[r.mood_emoji] !== undefined) moodCounts[r.mood_emoji]++; });
@@ -957,7 +965,7 @@ function renderInsights(rows, allRows, from, to, period) {
       <div class="mood-dist-bar-wrap">
         <div class="mood-dist-bar" style="height:${Math.round(moodCounts[e] / maxMood * 48)}px"></div>
       </div>
-      <div class="mood-dist-emoji">${e}</div>
+      <div class="mood-dist-emoji">${MOOD_SVG[e] || e}</div>
       <div class="mood-dist-count">${moodCounts[e]}</div>
     </div>
   `).join('');
