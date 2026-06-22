@@ -58,9 +58,26 @@ main {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   padding-bottom: calc(var(--nav-h) + min(env(safe-area-inset-bottom), 10px) + 16px);
+  position: relative;
+  z-index: 2;
+}
+
+#checkin-bg-card {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--nav-h) + min(env(safe-area-inset-bottom), 10px));
+  background: var(--bg-2);
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px var(--border), 0 6px 24px rgba(0,0,0,0.10);
+  z-index: 1;
+  opacity: 0;
+  transform: scale(0.92);
+  pointer-events: none;
+  transition: none;
 }
 
 .screen { display: none; padding: 0 20px; }

@@ -1496,11 +1496,35 @@ function registerSW() {
   }
 }
 
-// ── Swipe navigatie (check-in scherm) ────────────────────────────────────────
+// ── Swipe navigatie — kaartenstapel ──────────────────────────────────────────
 function initSwipe() {
   const el = document.getElementById('screen-checkin');
   let startX = 0, startY = 0, dragging = false;
+  let bgCard = null;
   const W = () => window.innerWidth;
+  const ease = t => 1 - Math.pow(1 - t, 2);
+
+  function showBgCard() {
+    if (bgCard) return;
+    bgCard = document.createElement('div');
+    bgCard.id = 'checkin-bg-card';
+    document.body.appendChild(bgCard);
+  }
+
+  function removeBgCard(animate) {
+    if (!bgCard) return;
+    if (animate) {
+      bgCard.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
+      bgCard.style.transform = 'scale(0.92)';
+      bgCard.style.opacity = '0';
+      const card = bgCard;
+      bgCard = null;
+      setTimeout(() => card.remove(), 230);
+    } else {
+      bgCard.remove();
+      bgCard = null;
+    }
+  }
 
   el.addEventListener('touchstart', e => {
     startX = e.touches[0].clientX;
@@ -1515,19 +1539,28 @@ function initSwipe() {
 
     if (!dragging) {
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      if (Math.abs(dx) > Math.abs(dy) * 1.5) dragging = true;
+      if (Math.abs(dx) > Math.abs(dy) * 1.5) { dragging = true; showBgCard(); }
       else return;
     }
 
     e.preventDefault();
     const atEdge = dx < 0 && state.date >= todayStr();
     const offset = atEdge ? dx * 0.15 : dx;
+    const progress = ease(Math.min(Math.abs(offset) / (W() * 0.55), 1));
+
     el.style.transform = `translateX(${offset}px)`;
+    el.style.boxShadow = `${dx > 0 ? 6 : -6}px 0 24px rgba(0,0,0,${0.12 * progress})`;
+
+    if (bgCard) {
+      bgCard.style.transform = `scale(${0.92 + 0.08 * progress})`;
+      bgCard.style.opacity = String(Math.min(progress * 1.8, 1));
+    }
   }, { passive: false });
 
   el.addEventListener('touchend', e => {
     if (!dragging) return;
     dragging = false;
+    el.style.boxShadow = '';
 
     const dx = e.changedTouches[0].clientX - startX;
     const dy = e.changedTouches[0].clientY - startY;
@@ -1538,7 +1571,13 @@ function initSwipe() {
     function slideOut(dir, targetDate) {
       el.style.transition = 'transform 0.22s ease';
       el.style.transform = `translateX(${dir * W()}px)`;
+      if (bgCard) {
+        bgCard.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
+        bgCard.style.transform = 'scale(1)';
+        bgCard.style.opacity = '1';
+      }
       setTimeout(async () => {
+        removeBgCard(false);
         el.style.transition = 'none';
         el.style.transform = `translateX(${-dir * W()}px)`;
         await loadCheckinForDate(targetDate);
@@ -1554,6 +1593,7 @@ function initSwipe() {
     else {
       el.style.transition = 'transform 0.22s ease';
       el.style.transform = 'translateX(0)';
+      removeBgCard(true);
     }
   }, { passive: true });
 }
