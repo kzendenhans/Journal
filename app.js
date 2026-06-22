@@ -5,9 +5,11 @@ const cfg = {
   get sbUrl()  { return localStorage.getItem('sb_url') || ''; },
   get sbKey()  { return localStorage.getItem('sb_key') || ''; },
   get asanaPat(){ return localStorage.getItem('asana_pat') || ''; },
+  get calUrl() { return localStorage.getItem('cal_url') || ''; },
   set sbUrl(v)  { localStorage.setItem('sb_url', v); },
   set sbKey(v)  { localStorage.setItem('sb_key', v); },
   set asanaPat(v){ localStorage.setItem('asana_pat', v); },
+  set calUrl(v) { localStorage.setItem('cal_url', v); },
 };
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -71,6 +73,70 @@ function scheduleAutoSave() {
 
 function showSettings() {
   navigate('settings');
+}
+
+// ── Kalender (ICS) ───────────────────────────────────────────────────────────
+function parseICS(text, dateStr) {
+  const target = dateStr.replace(/-/g, ''); // YYYYMMDD
+  const unfolded = text.replace(/\r\n[ \t]/g, '').replace(/\r\n/g, '\n').replace(/\n[ \t]/g, '');
+  const events = [];
+
+  unfolded.split('BEGIN:VEVENT').slice(1).forEach(block => {
+    const end = block.indexOf('END:VEVENT');
+    if (end === -1) return;
+    const props = {};
+    block.slice(0, end).split('\n').forEach(line => {
+      const ci = line.indexOf(':');
+      if (ci === -1) return;
+      const rawKey = line.slice(0, ci).toUpperCase();
+      const val = line.slice(ci + 1).trim();
+      const key = rawKey.split(';')[0]; // strip params like TZID=...
+      if (!props[key]) props[key] = val;
+    });
+
+    const summary = (props['SUMMARY'] || '').replace(/\\,/g, ',').replace(/\\n/g, ' ').replace(/\\\\/g, '\\');
+    const dtstart = props['DTSTART'] || '';
+    if (!summary || !dtstart) return;
+
+    // Determine local date of event
+    let eventDate, displayTime = '';
+    if (dtstart.endsWith('Z') && dtstart.length > 8) {
+      const d = new Date(Date.UTC(+dtstart.slice(0,4), +dtstart.slice(4,6)-1, +dtstart.slice(6,8), +dtstart.slice(9,11), +dtstart.slice(11,13)));
+      eventDate = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+      displayTime = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    } else if (dtstart.length > 8) {
+      eventDate = dtstart.slice(0, 8);
+      displayTime = `${dtstart.slice(9,11)}:${dtstart.slice(11,13)}`;
+    } else {
+      eventDate = dtstart.slice(0, 8);
+    }
+
+    if (eventDate !== target) return;
+    events.push({ summary, time: displayTime, dtstart });
+  });
+
+  return events.sort((a, b) => a.dtstart < b.dtstart ? -1 : 1);
+}
+
+async function loadCalendarEvents(dateStr) {
+  const el = document.getElementById('calendar-events');
+  if (!el || !cfg.calUrl) { if (el) el.innerHTML = ''; return; }
+
+  const url = cfg.calUrl.replace(/^webcal:\/\//i, 'https://');
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const events = parseICS(text, dateStr);
+    if (!events.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div class="cal-events-card">${
+      events.map(e => `<div class="cal-event">${
+        e.time ? `<span class="cal-event-time">${e.time}</span>` : ''
+      }<span class="cal-event-title">${e.summary}</span></div>`).join('')
+    }</div>`;
+  } catch(e) {
+    el.innerHTML = '';
+  }
 }
 
 // ── Supabase helpers ──────────────────────────────────────────────────────────
@@ -271,6 +337,7 @@ async function loadCheckinForDate(dateStr) {
   }
 
   renderCheckin();
+  loadCalendarEvents(dateStr);
   if (dateStr === todayStr()) loadWeekSummary();
 }
 
@@ -1040,7 +1107,39 @@ function populateSettingsFields() {
   document.getElementById('sb-url').value = cfg.sbUrl;
   document.getElementById('sb-key').value = cfg.sbKey;
   document.getElementById('asana-pat').value = cfg.asanaPat;
+  document.getElementById('cal-url').value = cfg.calUrl;
   updateNotificationStatus();
+  updateCalStatus();
+}
+
+function saveCalUrl() {
+  cfg.calUrl = document.getElementById('cal-url').value.trim();
+  showToast('✓ Kalender-url opgeslagen');
+  updateCalStatus();
+  loadCalendarEvents(state.date);
+}
+
+async function testCalUrl() {
+  const statusEl = document.getElementById('cal-status');
+  statusEl.innerHTML = `<span class="status-dot idle"></span> Testen…`;
+  const url = document.getElementById('cal-url').value.trim().replace(/^webcal:\/\//i, 'https://');
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    if (!text.includes('BEGIN:VCALENDAR')) throw new Error('Geen geldig ICS-bestand');
+    statusEl.innerHTML = `<span class="status-dot ok"></span> Kalender gevonden`;
+  } catch(e) {
+    statusEl.innerHTML = `<span class="status-dot err"></span> Fout: ${e.message}`;
+  }
+}
+
+function updateCalStatus() {
+  const el = document.getElementById('cal-status');
+  if (!el) return;
+  el.innerHTML = cfg.calUrl
+    ? `<span class="status-dot ok"></span> URL geconfigureerd`
+    : `<span class="status-dot idle"></span> Niet geconfigureerd`;
 }
 
 function saveSupabase() {

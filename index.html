@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
 <div id="app">
@@ -35,6 +35,7 @@
         <strong>Setup vereist</strong> — Voeg je Supabase URL en API-sleutel toe via <a href="#" onclick="showSettings()" style="color:var(--primary)">Instellingen</a>.
       </div>
 
+      <div id="calendar-events"></div>
       <div id="week-summary"></div>
 
       <!-- Slaap -->
@@ -209,6 +210,23 @@
       </div>
 
       <div class="settings-section">
+        <h2>Kalender</h2>
+        <label>ICS-url</label>
+        <input type="url" id="cal-url" placeholder="https://p62-caldav.icloud.com/…">
+        <p style="font-size:0.76rem;color:var(--text-muted);line-height:1.5;margin-top:8px">
+          iCloud: Kalender → ⓘ naast kalender → Deel kalender → Openbare kalender → kopieer link.<br>
+          Vervang <code style="font-size:0.72rem">webcal://</code> door <code style="font-size:0.72rem">https://</code>.
+        </p>
+        <div class="connection-status" id="cal-status" style="margin-top:10px">
+          <span class="status-dot idle"></span> Niet geconfigureerd
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="save-btn" style="padding:12px" onclick="saveCalUrl()">Opslaan</button>
+          <button class="btn-secondary" style="flex:1;padding:12px" onclick="testCalUrl()">Test verbinding</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
         <h2>Herinneringen</h2>
         <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:0">
           Dagelijkse herinnering om in te loggen — 8:00 en 20:00.
@@ -224,7 +242,7 @@
       <div class="settings-section">
         <h2>Over</h2>
         <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.6">
-          Dagboek v1.23<br>
+          Dagboek v1.24<br>
           Data wordt opgeslagen in Supabase.<br>
           Taken worden gesynchroniseerd met Asana.
         </p>
@@ -298,6 +316,6 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="app.js?v=13"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>
