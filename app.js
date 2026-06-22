@@ -1500,29 +1500,49 @@ function registerSW() {
 function initSwipe() {
   const el = document.getElementById('screen-checkin');
   let startX = 0, startY = 0, dragging = false;
-  let bgCard = null;
+  let underEl = null;
+  let underDate = null;
   const W = () => window.innerWidth;
   const ease = t => 1 - Math.pow(1 - t, 2);
 
-  function showBgCard() {
-    if (bgCard) return;
-    bgCard = document.createElement('div');
-    bgCard.id = 'checkin-bg-card';
-    document.body.appendChild(bgCard);
+  function buildUnderCard(targetDate) {
+    if (underEl || underDate === targetDate) return;
+    underDate = targetDate;
+
+    // Snapshot: temporarily render target date into real DOM (sync, no fetch),
+    // capture the HTML, then immediately restore current state.
+    const saved = { date: state.date, entry: state.entry, sleep: state.sleep,
+      weight: state.weight, mood: state.mood, emotions: state.emotions, notes: state.notes };
+    state.date = targetDate;
+    state.entry = {}; state.sleep = 8.0; state.weight = null;
+    state.mood = null; state.emotions = {}; state.notes = '';
+    renderCheckin();
+    const html = el.innerHTML;
+    Object.assign(state, saved);
+    renderCheckin();
+
+    underEl = document.createElement('div');
+    underEl.id = 'checkin-bg-card';
+    underEl.innerHTML = html;
+    document.body.appendChild(underEl);
+
+    // Pre-fetch real data in background so it's ready when swipe completes
+    loadEntry(targetDate).catch(() => {});
   }
 
-  function removeBgCard(animate) {
-    if (!bgCard) return;
+  function removeUnderCard(animate) {
+    if (!underEl) return;
+    underDate = null;
     if (animate) {
-      bgCard.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
-      bgCard.style.transform = 'scale(0.92)';
-      bgCard.style.opacity = '0';
-      const card = bgCard;
-      bgCard = null;
-      setTimeout(() => card.remove(), 230);
+      underEl.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+      underEl.style.transform = 'scale(0.92)';
+      underEl.style.opacity = '0';
+      const card = underEl;
+      underEl = null;
+      setTimeout(() => card.remove(), 220);
     } else {
-      bgCard.remove();
-      bgCard = null;
+      underEl.remove();
+      underEl = null;
     }
   }
 
@@ -1539,8 +1559,12 @@ function initSwipe() {
 
     if (!dragging) {
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      if (Math.abs(dx) > Math.abs(dy) * 1.5) { dragging = true; showBgCard(); }
-      else return;
+      if (Math.abs(dx) > Math.abs(dy) * 1.5) {
+        dragging = true;
+        const targetDate = offsetDate(state.date, dx < 0 ? 1 : -1);
+        const canMove = dx > 0 || state.date < todayStr();
+        if (canMove) buildUnderCard(targetDate);
+      } else return;
     }
 
     e.preventDefault();
@@ -1551,9 +1575,9 @@ function initSwipe() {
     el.style.transform = `translateX(${offset}px)`;
     el.style.boxShadow = `${dx > 0 ? 6 : -6}px 0 24px rgba(0,0,0,${0.12 * progress})`;
 
-    if (bgCard) {
-      bgCard.style.transform = `scale(${0.92 + 0.08 * progress})`;
-      bgCard.style.opacity = String(Math.min(progress * 1.8, 1));
+    if (underEl) {
+      underEl.style.transform = `scale(${0.92 + 0.08 * progress})`;
+      underEl.style.opacity = String(Math.min(progress * 1.8, 1));
     }
   }, { passive: false });
 
@@ -1569,31 +1593,32 @@ function initSwipe() {
     const goPrev = dx > 50 && isH;
 
     function slideOut(dir, targetDate) {
-      el.style.transition = 'transform 0.22s ease';
+      el.style.transition = 'transform 0.2s ease';
       el.style.transform = `translateX(${dir * W()}px)`;
-      if (bgCard) {
-        bgCard.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
-        bgCard.style.transform = 'scale(1)';
-        bgCard.style.opacity = '1';
+      if (underEl) {
+        underEl.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+        underEl.style.transform = 'scale(1)';
+        underEl.style.opacity = '1';
       }
       setTimeout(async () => {
-        removeBgCard(false);
+        // underEl stays visible behind el while real data loads
         el.style.transition = 'none';
         el.style.transform = `translateX(${-dir * W()}px)`;
         await loadCheckinForDate(targetDate);
         requestAnimationFrame(() => requestAnimationFrame(() => {
-          el.style.transition = 'transform 0.22s ease';
+          el.style.transition = 'transform 0.2s ease';
           el.style.transform = 'translateX(0)';
+          setTimeout(() => removeUnderCard(false), 210);
         }));
-      }, 220);
+      }, 200);
     }
 
     if (goNext) slideOut(-1, offsetDate(state.date, 1));
     else if (goPrev) slideOut(1, offsetDate(state.date, -1));
     else {
-      el.style.transition = 'transform 0.22s ease';
+      el.style.transition = 'transform 0.2s ease';
       el.style.transform = 'translateX(0)';
-      removeBgCard(true);
+      removeUnderCard(true);
     }
   }, { passive: true });
 }
