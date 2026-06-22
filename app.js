@@ -305,7 +305,7 @@ async function loadWeekSummary() {
     if (!rows.length) { el.innerHTML = ''; return; }
 
     const goals = [
-      { key: 'gym',        label: 'Gym',      goal: 3 },
+      { key: 'gym',        label: 'Gym',      goal: 5 },
       { key: 'gewerkt',    label: 'Gewerkt',  goal: 5 },
       { key: 'geklust',    label: 'Geklust',  goal: 1 },
       { key: 'geschreven', label: 'Schrijven',goal: 1 },
@@ -787,7 +787,7 @@ function renderInsights(rows, allRows, from, to, period) {
     period === '6months' ? 182 :
     periodDays;
 
-  const WEEKLY_RATES = { gym: 3/7, gewerkt: 5/7, geklust: 1, geschreven: 1 };
+  const WEEKLY_RATES = { gym: 5/7, gewerkt: 5/7, geklust: 1, geschreven: 1 };
   const periodGoal = k => Math.round(WEEKLY_RATES[k] * goalBaseDays) || 1;
 
   const progressTitle =
