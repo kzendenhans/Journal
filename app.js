@@ -300,8 +300,9 @@ async function loadWeekSummary() {
   const to = `${toDate.getFullYear()}-${String(toDate.getMonth()+1).padStart(2,'0')}-${String(toDate.getDate()).padStart(2,'0')}`;
 
   try {
-    const rows = await sbFetch(`/habit_entries?date=gte.${from}&date=lte.${to}&limit=7`);
-    if (!rows || !rows.length) { el.innerHTML = ''; return; }
+    const raw = await sbFetch(`/habit_entries?date=gte.${from}&date=lte.${to}&order=date.asc`);
+    const rows = (raw || []).filter(r => r.date >= from && r.date <= to);
+    if (!rows.length) { el.innerHTML = ''; return; }
 
     const goals = [
       { key: 'gym',        label: 'Gym',      goal: 3 },
@@ -315,7 +316,7 @@ async function loadWeekSummary() {
       const met = count >= g.goal;
       return `<div class="week-summary-goal">
         <span style="font-size:0.78rem;color:${met ? 'var(--success)' : 'var(--text-muted)'}">${met ? '✓' : '○'}</span>
-        <span>${g.label} <span style="color:var(--text-muted);font-size:0.78rem">${count}/${g.goal}</span></span>
+        <span>${g.label} <span style="color:var(--text-muted);font-size:0.78rem">${count}/7</span></span>
       </div>`;
     }).join('');
 
