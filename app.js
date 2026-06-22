@@ -307,8 +307,8 @@ async function loadWeekSummary() {
     const goals = [
       { key: 'gym',        label: 'Gym',      goal: 5 },
       { key: 'gewerkt',    label: 'Gewerkt',  goal: 5 },
-      { key: 'geklust',    label: 'Geklust',  goal: 1 },
-      { key: 'geschreven', label: 'Schrijven',goal: 1 },
+      { key: 'geklust',    label: 'Geklust',  goal: 7 },
+      { key: 'geschreven', label: 'Schrijven',goal: 7 },
     ];
 
     const goalsHtml = goals.map(g => {
