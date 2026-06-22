@@ -161,9 +161,18 @@ async function sbFetch(path, opts={}) {
   return res.json();
 }
 
+const _entryCache = new Map();
+
 async function loadEntry(dateStr) {
-  const rows = await sbFetch(`/habit_entries?date=eq.${dateStr}&limit=1`);
-  return rows && rows.length ? rows[0] : null;
+  if (_entryCache.has(dateStr)) return _entryCache.get(dateStr);
+  const p = sbFetch(`/habit_entries?date=eq.${dateStr}&limit=1`)
+    .then(rows => rows && rows.length ? rows[0] : null);
+  _entryCache.set(dateStr, p);
+  return p;
+}
+
+function invalidateEntry(dateStr) {
+  _entryCache.delete(dateStr);
 }
 
 async function upsertEntry(data) {
@@ -341,6 +350,12 @@ async function loadCheckinForDate(dateStr) {
   renderCheckin();
   loadCalendarEvents(dateStr);
   if (dateStr === todayStr()) loadWeekSummary();
+
+  // Pre-fetch adjacent days so swipe under-card has real data ready
+  if (cfg.sbUrl && cfg.sbKey) {
+    loadEntry(offsetDate(dateStr, -1)).catch(() => {});
+    if (dateStr < todayStr()) loadEntry(offsetDate(dateStr, 1)).catch(() => {});
+  }
 }
 
 function goToToday() {
@@ -436,6 +451,7 @@ async function saveCheckin(silent = false) {
 
   try {
     await upsertEntry(data);
+    invalidateEntry(state.date);
     state.dirtyCheckin = false;
     if (!silent) showToast('✓ Opgeslagen');
   } catch (e) {
@@ -1526,8 +1542,28 @@ function initSwipe() {
     underEl.innerHTML = html;
     document.body.appendChild(underEl);
 
-    // Pre-fetch real data in background so it's ready when swipe completes
-    loadEntry(targetDate).catch(() => {});
+    const boolKeys = ['gym','gewerkt','geklust','geschreven','geleest','gemediteerd',
+      'tijd_met_anderen','gespeeld','te_veel_weinig_eten','gedoomscrolled',
+      'gemasturbeerd','porno_gekeken'];
+
+    // Apply real data to under-card as soon as it's available (cache = likely instant)
+    loadEntry(targetDate).then(row => {
+      if (!underEl || underDate !== targetDate) return;
+      underEl.querySelectorAll('.habit-btn').forEach(btn => {
+        btn.classList.toggle('active', !!(row && row[btn.dataset.key]));
+      });
+      const sl = underEl.querySelector('[id="sleep-value"]');
+      if (sl) sl.textContent = (row?.slaap != null ? +row.slaap : 8.0).toFixed(1);
+      const wi = underEl.querySelector('[id="weight-input"]');
+      if (wi) wi.value = row?.gewicht != null ? row.gewicht : '';
+      const mood = row?.mood_emoji || null;
+      underEl.querySelectorAll('.mood-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mood === mood);
+      });
+      underEl.querySelectorAll('.emotion-btn').forEach(btn => {
+        btn.classList.toggle('active', !!(row && row[btn.dataset.key]));
+      });
+    }).catch(() => {});
   }
 
   function removeUnderCard(animate) {
