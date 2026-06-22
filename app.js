@@ -1319,19 +1319,62 @@ function registerSW() {
 // ── Swipe navigatie (check-in scherm) ────────────────────────────────────────
 function initSwipe() {
   const el = document.getElementById('screen-checkin');
-  let startX = 0, startY = 0;
+  let startX = 0, startY = 0, dragging = false;
+  const W = () => window.innerWidth;
 
   el.addEventListener('touchstart', e => {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
+    dragging = false;
+    el.style.transition = 'none';
   }, { passive: true });
 
+  el.addEventListener('touchmove', e => {
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+
+    if (!dragging) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dx) > Math.abs(dy) * 1.5) dragging = true;
+      else return;
+    }
+
+    e.preventDefault();
+    const atEdge = dx < 0 && state.date >= todayStr();
+    const offset = atEdge ? dx * 0.15 : dx;
+    el.style.transform = `translateX(${offset}px)`;
+  }, { passive: false });
+
   el.addEventListener('touchend', e => {
+    if (!dragging) return;
+    dragging = false;
+
     const dx = e.changedTouches[0].clientX - startX;
     const dy = e.changedTouches[0].clientY - startY;
-    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    if (dx < 0 && state.date < todayStr()) loadCheckinForDate(offsetDate(state.date, 1));
-    if (dx > 0) loadCheckinForDate(offsetDate(state.date, -1));
+    const isH = Math.abs(dx) > Math.abs(dy) * 1.5;
+    const goNext = dx < -50 && isH && state.date < todayStr();
+    const goPrev = dx > 50 && isH;
+
+    function slideOut(dir, targetDate) {
+      el.style.transition = 'transform 0.22s ease';
+      el.style.transform = `translateX(${dir * W()}px)`;
+      setTimeout(async () => {
+        el.style.transition = 'none';
+        el.style.transform = `translateX(${-dir * W()}px)`;
+        await loadCheckinForDate(targetDate);
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          el.style.transition = 'transform 0.22s ease';
+          el.style.transform = 'translateX(0)';
+        }));
+      }, 220);
+    }
+
+    if (goNext) slideOut(-1, offsetDate(state.date, 1));
+    else if (goPrev) slideOut(1, offsetDate(state.date, -1));
+    else {
+      el.style.transition = 'transform 0.22s ease';
+      el.style.transform = 'translateX(0)';
+    }
   }, { passive: true });
 }
 
