@@ -5,11 +5,11 @@ const cfg = {
   get sbUrl()  { return localStorage.getItem('sb_url') || ''; },
   get sbKey()  { return localStorage.getItem('sb_key') || ''; },
   get asanaPat(){ return localStorage.getItem('asana_pat') || ''; },
-  get calUrl() { return localStorage.getItem('cal_url') || ''; },
+  get calUrls() { return JSON.parse(localStorage.getItem('cal_urls') || '[]'); },
   set sbUrl(v)  { localStorage.setItem('sb_url', v); },
   set sbKey(v)  { localStorage.setItem('sb_key', v); },
   set asanaPat(v){ localStorage.setItem('asana_pat', v); },
-  set calUrl(v) { localStorage.setItem('cal_url', v); },
+  set calUrls(v) { localStorage.setItem('cal_urls', JSON.stringify(v)); },
 };
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -120,23 +120,25 @@ function parseICS(text, dateStr) {
 
 async function loadCalendarEvents(dateStr) {
   const el = document.getElementById('calendar-events');
-  if (!el || !cfg.calUrl) { if (el) el.innerHTML = ''; return; }
+  if (!el) return;
+  const urls = cfg.calUrls;
+  if (!urls.length) { el.innerHTML = ''; return; }
 
-  const url = cfg.calUrl.replace(/^webcal:\/\//i, 'https://');
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    const events = parseICS(text, dateStr);
-    if (!events.length) { el.innerHTML = ''; return; }
-    el.innerHTML = `<div class="cal-events-card">${
-      events.map(e => `<div class="cal-event">${
-        e.time ? `<span class="cal-event-time">${e.time}</span>` : ''
-      }<span class="cal-event-title">${e.summary}</span></div>`).join('')
-    }</div>`;
-  } catch(e) {
-    el.innerHTML = '';
-  }
+  const results = await Promise.all(urls.map(async url => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      return parseICS(await res.text(), dateStr);
+    } catch { return []; }
+  }));
+
+  const events = results.flat().sort((a, b) => a.dtstart < b.dtstart ? -1 : 1);
+  if (!events.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="cal-events-card">${
+    events.map(e => `<div class="cal-event">${
+      e.time ? `<span class="cal-event-time">${e.time}</span>` : ''
+    }<span class="cal-event-title">${e.summary}</span></div>`).join('')
+  }</div>`;
 }
 
 // ── Supabase helpers ──────────────────────────────────────────────────────────
@@ -1107,22 +1109,51 @@ function populateSettingsFields() {
   document.getElementById('sb-url').value = cfg.sbUrl;
   document.getElementById('sb-key').value = cfg.sbKey;
   document.getElementById('asana-pat').value = cfg.asanaPat;
-  document.getElementById('cal-url').value = cfg.calUrl;
   updateNotificationStatus();
+  renderCalSettings();
+}
+
+function renderCalSettings() {
+  const list = document.getElementById('cal-url-list');
+  if (!list) return;
+  const urls = cfg.calUrls;
+  list.innerHTML = urls.length
+    ? urls.map((url, i) => `
+        <div class="cal-url-row">
+          <span class="cal-url-label">${url}</span>
+          <button class="cal-url-remove" onclick="removeCalUrl(${i})">×</button>
+        </div>`).join('')
+    : '';
   updateCalStatus();
 }
 
-function saveCalUrl() {
-  cfg.calUrl = document.getElementById('cal-url').value.trim();
-  showToast('✓ Kalender-url opgeslagen');
-  updateCalStatus();
+function addCalUrl() {
+  const input = document.getElementById('cal-url-input');
+  const url = input.value.trim().replace(/^webcal:\/\//i, 'https://');
+  if (!url) return;
+  const urls = cfg.calUrls;
+  if (urls.includes(url)) { showToast('URL al toegevoegd'); return; }
+  urls.push(url);
+  cfg.calUrls = urls;
+  input.value = '';
+  renderCalSettings();
+  showToast('✓ Kalender toegevoegd');
+  loadCalendarEvents(state.date);
+}
+
+function removeCalUrl(i) {
+  const urls = cfg.calUrls;
+  urls.splice(i, 1);
+  cfg.calUrls = urls;
+  renderCalSettings();
   loadCalendarEvents(state.date);
 }
 
 async function testCalUrl() {
   const statusEl = document.getElementById('cal-status');
+  const url = document.getElementById('cal-url-input').value.trim().replace(/^webcal:\/\//i, 'https://');
+  if (!url) { showToast('Voer eerst een URL in'); return; }
   statusEl.innerHTML = `<span class="status-dot idle"></span> Testen…`;
-  const url = document.getElementById('cal-url').value.trim().replace(/^webcal:\/\//i, 'https://');
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1137,9 +1168,10 @@ async function testCalUrl() {
 function updateCalStatus() {
   const el = document.getElementById('cal-status');
   if (!el) return;
-  el.innerHTML = cfg.calUrl
-    ? `<span class="status-dot ok"></span> URL geconfigureerd`
-    : `<span class="status-dot idle"></span> Niet geconfigureerd`;
+  const n = cfg.calUrls.length;
+  el.innerHTML = n
+    ? `<span class="status-dot ok"></span> ${n} kalender${n > 1 ? 's' : ''} geconfigureerd`
+    : `<span class="status-dot idle"></span> Geen kalenders toegevoegd`;
 }
 
 function saveSupabase() {

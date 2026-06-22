@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=14">
+  <link rel="stylesheet" href="style.css?v=15">
 </head>
 <body>
 <div id="app">
@@ -211,18 +211,17 @@
 
       <div class="settings-section">
         <h2>Kalender</h2>
-        <label>ICS-url</label>
-        <input type="url" id="cal-url" placeholder="https://p62-caldav.icloud.com/…">
-        <p style="font-size:0.76rem;color:var(--text-muted);line-height:1.5;margin-top:8px">
-          iCloud: Kalender → ⓘ naast kalender → Deel kalender → Openbare kalender → kopieer link.<br>
-          Vervang <code style="font-size:0.72rem">webcal://</code> door <code style="font-size:0.72rem">https://</code>.
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input type="url" id="cal-url-input" placeholder="https://…" style="flex:1;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.88rem;padding:10px 12px;font-family:inherit">
+          <button class="save-btn" style="padding:10px 14px;width:auto" onclick="addCalUrl()">+</button>
+        </div>
+        <button class="btn-secondary" style="width:100%;padding:10px;font-size:0.82rem;margin-bottom:12px" onclick="testCalUrl()">Test URL</button>
+        <div id="cal-url-list"></div>
+        <p style="font-size:0.76rem;color:var(--text-muted);line-height:1.5;margin-top:10px">
+          iCloud: Kalender → ⓘ → Deel kalender → Openbare kalender → kopieer link (vervang webcal:// door https://).
         </p>
         <div class="connection-status" id="cal-status" style="margin-top:10px">
-          <span class="status-dot idle"></span> Niet geconfigureerd
-        </div>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="save-btn" style="padding:12px" onclick="saveCalUrl()">Opslaan</button>
-          <button class="btn-secondary" style="flex:1;padding:12px" onclick="testCalUrl()">Test verbinding</button>
+          <span class="status-dot idle"></span> Geen kalenders toegevoegd
         </div>
       </div>
 
@@ -316,6 +315,6 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="app.js?v=14"></script>
+<script src="app.js?v=15"></script>
 </body>
 </html>
