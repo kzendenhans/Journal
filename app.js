@@ -350,6 +350,7 @@ async function loadCheckinForDate(dateStr) {
   renderCheckin();
   loadCalendarEvents(dateStr);
   if (dateStr === todayStr()) loadWeekSummary();
+  else { const ws = document.getElementById('week-summary'); if (ws) ws.innerHTML = ''; }
 
   // Pre-fetch adjacent days so swipe under-card has real data ready
   if (cfg.sbUrl && cfg.sbKey) {
