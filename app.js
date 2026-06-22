@@ -1343,8 +1343,17 @@ function initListeners() {
     btn.addEventListener('click', () => {
       const key = btn.dataset.key;
       state.entry[key] = !state.entry[key];
+      const isGood = !btn.classList.contains('bad');
       btn.classList.toggle('active', !!state.entry[key]);
-      haptic(8);
+      if (state.entry[key] && isGood) {
+        haptic(18);
+        btn.classList.remove('pop');
+        void btn.offsetWidth; // force reflow to restart animation
+        btn.classList.add('pop');
+        btn.addEventListener('animationend', () => btn.classList.remove('pop'), { once: true });
+      } else {
+        haptic(8);
+      }
       scheduleAutoSave();
     });
   });
