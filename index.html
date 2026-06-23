@@ -293,14 +293,18 @@
         <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:14px">
           Sla je instellingen op zodat je ze na een reset snel kunt herstellen.
         </p>
-        <button class="save-btn" onclick="exportSettings()" style="margin-bottom:10px">Exporteer instellingen</button>
+        <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:14px">
+          Genereer een herstel-URL en sla die op als Safari-bladwijzer. Na elke reset: bladwijzer aanklikken → alle instellingen laden automatisch.
+        </p>
+        <button class="save-btn" onclick="exportSettings()" style="margin-bottom:10px">Genereer herstel-URL</button>
         <div id="backup-export-box" style="display:none;margin-bottom:14px">
-          <textarea id="backup-output" style="min-height:80px;font-size:0.72rem;font-family:monospace" readonly onclick="this.select()"></textarea>
-          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:6px">Selecteer alles en kopieer — sla op als notitie of stuur naar jezelf.</p>
+          <textarea id="backup-output" style="min-height:60px;font-size:0.65rem;font-family:monospace;word-break:break-all" readonly onclick="this.select()"></textarea>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:6px">URL is gekopieerd naar klembord. Sla op als Safari-bladwijzer of iCloud-notitie.</p>
+          <a id="restore-url-output" href="#" style="display:block;margin-top:8px;font-size:0.8rem;color:var(--accent);text-align:center" onclick="return false">Tik hier om bladwijzer toe te voegen</a>
         </div>
-        <label style="margin-top:8px">Herstel vanuit backup</label>
-        <textarea id="backup-input" placeholder="Plak hier je backup…" style="min-height:72px;font-size:0.8rem"></textarea>
-        <button class="btn-secondary" onclick="importSettings()" style="width:100%;padding:12px;margin-top:8px">Importeer instellingen</button>
+        <label style="margin-top:8px">Herstel vanuit backup-URL</label>
+        <textarea id="backup-input" placeholder="Plak hier je herstel-URL of JSON backup…" style="min-height:72px;font-size:0.8rem"></textarea>
+        <button class="btn-secondary" onclick="importSettings()" style="width:100%;padding:12px;margin-top:8px">Importeer</button>
       </div>
 
       <div class="settings-section">

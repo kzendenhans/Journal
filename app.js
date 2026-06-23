@@ -1298,32 +1298,34 @@ function exportSettings() {
     gemini_key: cfg.geminiKey,
     notifications_enabled: localStorage.getItem('notifications_enabled') || 'false',
   };
-  const json = JSON.stringify(data, null, 2);
+  const json = JSON.stringify(data);
+  const encoded = btoa(unescape(encodeURIComponent(json)));
+  const restoreUrl = location.origin + location.pathname + '#R:' + encoded;
 
-  if (navigator.share) {
-    navigator.share({ title: 'Dagboek instellingen', text: json }).catch(() => {});
-    return;
-  }
-
-  // Fallback: toon in textarea
   const box = document.getElementById('backup-export-box');
   const out = document.getElementById('backup-output');
+  const urlOut = document.getElementById('restore-url-output');
   if (box && out) {
-    out.value = json;
+    out.value = restoreUrl;
     box.style.display = '';
-    out.select();
   }
+  if (urlOut) urlOut.href = restoreUrl;
 
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(json).then(() => showToast('✓ Backup gekopieerd'));
+    navigator.clipboard.writeText(restoreUrl).then(() => showToast('✓ Herstel-URL gekopieerd'));
   }
 }
 
 function importSettings() {
-  const json = (document.getElementById('backup-input').value || '').trim();
-  if (!json) { showToast('Plak eerst een backup'); return; }
+  let raw = (document.getElementById('backup-input').value || '').trim();
+  if (!raw) { showToast('Plak eerst een herstel-URL of backup'); return; }
   try {
-    const data = JSON.parse(json);
+    // Accepteer herstel-URL (#R:...) of gewone JSON
+    const hashIdx = raw.indexOf('#R:');
+    if (hashIdx !== -1) {
+      raw = decodeURIComponent(escape(atob(raw.slice(hashIdx + 3))));
+    }
+    const data = JSON.parse(raw);
     if (data.sb_url !== undefined) cfg.sbUrl = data.sb_url;
     if (data.sb_key !== undefined) cfg.sbKey = data.sb_key;
     if (data.asana_pat !== undefined) cfg.asanaPat = data.asana_pat;
@@ -1738,7 +1740,26 @@ function initSwipe() {
   }, { passive: true });
 }
 
+// ── Herstel vanuit bladwijzer ─────────────────────────────────────────────────
+function restoreFromBookmark() {
+  const hash = location.hash;
+  if (!hash.startsWith('#R:')) return;
+  try {
+    const json = decodeURIComponent(escape(atob(hash.slice(3))));
+    const data = JSON.parse(json);
+    if (data.sb_url !== undefined) cfg.sbUrl = data.sb_url;
+    if (data.sb_key !== undefined) cfg.sbKey = data.sb_key;
+    if (data.asana_pat !== undefined) cfg.asanaPat = data.asana_pat;
+    if (data.cal_urls !== undefined) cfg.calUrls = data.cal_urls;
+    if (data.gemini_key !== undefined) cfg.geminiKey = data.gemini_key;
+    if (data.notifications_enabled !== undefined) localStorage.setItem('notifications_enabled', data.notifications_enabled);
+    history.replaceState(null, '', location.pathname);
+    showToast('✓ Instellingen hersteld via bladwijzer', 3500);
+  } catch(e) { /* ongeldige hash, negeren */ }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
+restoreFromBookmark();
 initTheme();
 initListeners();
 initSwipe();
