@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=25">
+  <link rel="stylesheet" href="style.css?v=139">
 </head>
 <body>
 <div id="app">
@@ -35,7 +35,6 @@
         <strong>Setup vereist</strong> — Voeg je Supabase URL en API-sleutel toe via <a href="#" onclick="showSettings()" style="color:var(--primary)">Instellingen</a>.
       </div>
 
-      <div id="calendar-events"></div>
       <div id="week-summary"></div>
 
       <!-- Slaap -->
@@ -51,6 +50,7 @@
             <button class="sleep-btn" id="sleep-plus">+</button>
           </div>
         </div>
+        <div id="sleep-warning" style="display:none"></div>
       </div>
 
       <!-- Gewicht -->
@@ -60,6 +60,7 @@
           <input type="number" id="weight-input" placeholder="—" step="0.1" min="40" max="200">
           <span class="weight-unit">kg</span>
         </div>
+        <div id="weight-warning" style="display:none"></div>
       </div>
 
       <!-- Essentials -->
@@ -90,8 +91,8 @@
         <div class="habit-grid">
           <button class="habit-btn bad" data-key="te_veel_weinig_eten"><span class="habit-check"></span>Te veel/weinig eten</button>
           <button class="habit-btn bad" data-key="gedoomscrolled"><span class="habit-check"></span>Gedoomscrolled</button>
-          <button class="habit-btn bad" data-key="gemasturbeerd"><span class="habit-check"></span>Gemasturbeerd</button>
-          <button class="habit-btn bad" data-key="porno_gekeken"><span class="habit-check"></span>Porno gekeken</button>
+          <!-- HIDDEN: gemasturbeerd -->
+          <!-- HIDDEN: porno_gekeken -->
         </div>
       </div>
 
@@ -204,6 +205,11 @@
         </div>
       </div>
 
+      <div id="narrative-section">
+        <button id="generate-narrative-btn" onclick="generateInsightNarrative()">Genereer reflectie</button>
+        <div id="narrative-card" style="display:none"></div>
+      </div>
+
       <div id="insights-content">
         <div class="loading"><div class="spinner"></div>Laden…</div>
       </div>
@@ -244,21 +250,6 @@
         </div>
       </div>
 
-      <div class="settings-section">
-        <h2>Kalender</h2>
-        <div style="display:flex;gap:8px;margin-bottom:8px">
-          <input type="url" id="cal-url-input" placeholder="https://…" style="flex:1;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.88rem;padding:10px 12px;font-family:inherit">
-          <button class="save-btn" style="padding:10px 14px;width:auto" onclick="addCalUrl()">+</button>
-        </div>
-        <button class="btn-secondary" style="width:100%;padding:10px;font-size:0.82rem;margin-bottom:12px" onclick="testCalUrl()">Test URL</button>
-        <div id="cal-url-list"></div>
-        <p style="font-size:0.76rem;color:var(--text-muted);line-height:1.5;margin-top:10px">
-          iCloud: Kalender → ⓘ → Deel kalender → Openbare kalender → kopieer link (vervang webcal:// door https://).
-        </p>
-        <div class="connection-status" id="cal-status" style="margin-top:10px">
-          <span class="status-dot idle"></span> Geen kalenders toegevoegd
-        </div>
-      </div>
 
       <div class="settings-section">
         <h2>Herinneringen</h2>
@@ -270,6 +261,30 @@
         </div>
         <div style="margin-top:12px">
           <button class="save-btn" id="notification-toggle-btn" onclick="toggleNotifications()">Inschakelen</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2>Kalender (voor AI-reflectie)</h2>
+        <label>ICS-URL's (één per regel)</label>
+        <textarea id="cal-urls-input" placeholder="https://…" style="min-height:72px;font-size:0.8rem"></textarea>
+        <p style="font-size:0.76rem;color:var(--text-muted);line-height:1.5;margin-top:8px">
+          iCloud: Kalender → ⓘ → Deel kalender → Openbare kalender → kopieer link (vervang webcal:// door https://). Agenda-info wordt enkel gebruikt bij het genereren van reflecties.
+        </p>
+        <div style="margin-top:12px">
+          <button class="save-btn" style="padding:12px" onclick="saveCalUrls()">Opslaan</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2>Google Gemini (gratis)</h2>
+        <label>API Key</label>
+        <input type="password" id="gemini-key" placeholder="AIza…">
+        <p style="font-size:0.76rem;color:var(--text-muted);line-height:1.5;margin-top:8px">
+          Gratis key via <strong>aistudio.google.com</strong> → Get API key. Geen kredietkaart vereist. Wordt lokaal opgeslagen op dit apparaat.
+        </p>
+        <div style="margin-top:12px">
+          <button class="save-btn" style="padding:12px" onclick="saveGeminiKey()">Opslaan</button>
         </div>
       </div>
 
@@ -291,7 +306,7 @@
       <div class="settings-section">
         <h2>Over</h2>
         <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.6">
-          Dagboek v1.34<br>
+          Dagboek v1.39<br>
           Data wordt opgeslagen in Supabase.<br>
           Taken worden gesynchroniseerd met Asana.
         </p>
@@ -365,6 +380,6 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="app.js?v=25"></script>
+<script src="app.js?v=139"></script>
 </body>
 </html>

@@ -6,10 +6,12 @@ const cfg = {
   get sbKey()  { return localStorage.getItem('sb_key') || ''; },
   get asanaPat(){ return localStorage.getItem('asana_pat') || ''; },
   get calUrls() { return JSON.parse(localStorage.getItem('cal_urls') || '[]'); },
+  get geminiKey() { return localStorage.getItem('gemini_key') || ''; },
   set sbUrl(v)  { localStorage.setItem('sb_url', v); },
   set sbKey(v)  { localStorage.setItem('sb_key', v); },
   set asanaPat(v){ localStorage.setItem('asana_pat', v); },
   set calUrls(v) { localStorage.setItem('cal_urls', JSON.stringify(v)); },
+  set geminiKey(v) { localStorage.setItem('gemini_key', v); },
 };
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -17,7 +19,9 @@ const state = {
   date: todayStr(),          // YYYY-MM-DD
   entry: {},                 // current habit entry values
   sleep: 8.0,
+  sleepAvg14: null,
   weight: null,
+  weightAvg14: null,
   mood: null,
   emotions: {},
   notes: '',
@@ -85,10 +89,9 @@ function showSettings() {
 
 // ── Kalender (ICS) ───────────────────────────────────────────────────────────
 function parseICS(text, dateStr) {
-  const target = dateStr.replace(/-/g, ''); // YYYYMMDD
+  const target = dateStr.replace(/-/g, '');
   const unfolded = text.replace(/\r\n[ \t]/g, '').replace(/\r\n/g, '\n').replace(/\n[ \t]/g, '');
   const events = [];
-
   unfolded.split('BEGIN:VEVENT').slice(1).forEach(block => {
     const end = block.indexOf('END:VEVENT');
     if (end === -1) return;
@@ -96,17 +99,12 @@ function parseICS(text, dateStr) {
     block.slice(0, end).split('\n').forEach(line => {
       const ci = line.indexOf(':');
       if (ci === -1) return;
-      const rawKey = line.slice(0, ci).toUpperCase();
-      const val = line.slice(ci + 1).trim();
-      const key = rawKey.split(';')[0]; // strip params like TZID=...
-      if (!props[key]) props[key] = val;
+      const key = line.slice(0, ci).toUpperCase().split(';')[0];
+      if (!props[key]) props[key] = line.slice(ci + 1).trim();
     });
-
     const summary = (props['SUMMARY'] || '').replace(/\\,/g, ',').replace(/\\n/g, ' ').replace(/\\\\/g, '\\');
     const dtstart = props['DTSTART'] || '';
     if (!summary || !dtstart) return;
-
-    // Determine local date of event
     let eventDate, displayTime = '';
     if (dtstart.endsWith('Z') && dtstart.length > 8) {
       const d = new Date(Date.UTC(+dtstart.slice(0,4), +dtstart.slice(4,6)-1, +dtstart.slice(6,8), +dtstart.slice(9,11), +dtstart.slice(11,13)));
@@ -118,35 +116,10 @@ function parseICS(text, dateStr) {
     } else {
       eventDate = dtstart.slice(0, 8);
     }
-
     if (eventDate !== target) return;
     events.push({ summary, time: displayTime, dtstart });
   });
-
   return events.sort((a, b) => a.dtstart < b.dtstart ? -1 : 1);
-}
-
-async function loadCalendarEvents(dateStr) {
-  const el = document.getElementById('calendar-events');
-  if (!el) return;
-  const urls = cfg.calUrls;
-  if (!urls.length) { el.innerHTML = ''; return; }
-
-  const results = await Promise.all(urls.map(async url => {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) return [];
-      return parseICS(await res.text(), dateStr);
-    } catch { return []; }
-  }));
-
-  const events = results.flat().sort((a, b) => a.dtstart < b.dtstart ? -1 : 1);
-  if (!events.length) { el.innerHTML = ''; return; }
-  el.innerHTML = `<div class="cal-events-card">${
-    events.map(e => `<div class="cal-event">${
-      e.time ? `<span class="cal-event-time">${e.time}</span>` : ''
-    }<span class="cal-event-title">${e.summary}</span></div>`).join('')
-  }</div>`;
 }
 
 // ── Supabase helpers ──────────────────────────────────────────────────────────
@@ -181,6 +154,30 @@ async function loadEntry(dateStr) {
 
 function invalidateEntry(dateStr) {
   _entryCache.delete(dateStr);
+}
+
+async function loadSleepAvg14(excludeDate) {
+  if (!cfg.sbUrl || !cfg.sbKey) return null;
+  const from = offsetDate(excludeDate, -14);
+  const to   = offsetDate(excludeDate, -1);
+  try {
+    const rows = await sbFetch(`/habit_entries?date=gte.${from}&date=lte.${to}&slaap=not.is.null&select=slaap`);
+    if (!rows || !rows.length) return null;
+    const vals = rows.map(r => +r.slaap).filter(v => !isNaN(v));
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  } catch { return null; }
+}
+
+async function loadWeightAvg14(excludeDate) {
+  if (!cfg.sbUrl || !cfg.sbKey) return null;
+  const from = offsetDate(excludeDate, -14);
+  const to   = offsetDate(excludeDate, -1);
+  try {
+    const rows = await sbFetch(`/habit_entries?date=gte.${from}&date=lte.${to}&gewicht=not.is.null&select=gewicht`);
+    if (!rows || !rows.length) return null;
+    const vals = rows.map(r => +r.gewicht).filter(v => !isNaN(v));
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  } catch { return null; }
 }
 
 async function upsertEntry(data) {
@@ -272,6 +269,38 @@ function navigate(screenId) {
 }
 
 // ── Check-in Screen ───────────────────────────────────────────────────────────
+function updateWeightWarning() {
+  const el = document.getElementById('weight-warning');
+  if (!el) return;
+  const avg = state.weightAvg14;
+  if (avg !== null && state.weight !== null) {
+    const diff = state.weight - avg;
+    if (diff > 1.5) {
+      el.textContent = `Iets hoger dan je gemiddelde van de afgelopen 2 weken (${avg.toFixed(1)}kg).`;
+      el.style.display = '';
+    } else if (diff < -1.5) {
+      el.textContent = `Iets lager dan je gemiddelde van de afgelopen 2 weken (${avg.toFixed(1)}kg).`;
+      el.style.display = '';
+    } else {
+      el.style.display = 'none';
+    }
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function updateSleepWarning() {
+  const el = document.getElementById('sleep-warning');
+  if (!el) return;
+  const avg = state.sleepAvg14;
+  if (avg !== null && state.sleep < avg - 0.4) {
+    el.textContent = `Minder slaap dan je gemiddelde van de afgelopen 2 weken (${avg.toFixed(1)}u).`;
+    el.style.display = '';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
 function renderCheckin() {
   const isToday = state.date === todayStr();
   const isYesterday = state.date === offsetDate(todayStr(), -1);
@@ -294,10 +323,12 @@ function renderCheckin() {
 
   // Sleep
   document.getElementById('sleep-value').textContent = state.sleep.toFixed(1);
+  updateSleepWarning();
 
   // Weight
   const wi = document.getElementById('weight-input');
   wi.value = state.weight !== null ? state.weight : '';
+  updateWeightWarning();
 
   // Mood
   document.querySelectorAll('.mood-btn').forEach(btn => {
@@ -323,6 +354,8 @@ async function loadCheckinForDate(dateStr) {
   state.dirtyCheckin = false;
   state.entry = {};
   state.sleep = 8.0;
+  state.sleepAvg14 = null;
+  state.weightAvg14 = null;
   state.weight = null;
   state.mood = null;
   state.emotions = {};
@@ -337,7 +370,11 @@ async function loadCheckinForDate(dateStr) {
   document.getElementById('setup-banner').style.display = 'none';
 
   try {
-    const row = await loadEntry(dateStr);
+    const [row] = await Promise.all([
+      loadEntry(dateStr),
+      loadSleepAvg14(dateStr).then(avg => { state.sleepAvg14 = avg; }),
+      loadWeightAvg14(dateStr).then(avg => { state.weightAvg14 = avg; }),
+    ]);
     if (row) {
       const boolKeys = ['gym','gewerkt','geklust','geschreven','geleest','gemediteerd',
         'tijd_met_anderen','gespeeld','te_veel_weinig_eten','gedoomscrolled',
@@ -356,7 +393,6 @@ async function loadCheckinForDate(dateStr) {
   }
 
   renderCheckin();
-  loadCalendarEvents(dateStr);
   if (dateStr === todayStr()) loadWeekSummary();
   else { const ws = document.getElementById('week-summary'); if (ws) ws.innerHTML = ''; }
 
@@ -487,12 +523,17 @@ function taskProjectColor(task) {
   return PROJECT_COLORS[color] || '#64748b';
 }
 
+function formatTaskDate(str) {
+  const [y, m, d] = str.split('-');
+  return `${d}-${m}-${y}`;
+}
+
 function dueLabelHtml(dueOn) {
   if (!dueOn) return '';
   const today = todayStr();
-  if (dueOn < today) return `<span class="task-meta task-due-overdue">Verlopen: ${dueOn}</span>`;
+  if (dueOn < today) return `<span class="task-meta task-due-overdue">Verlopen: ${formatTaskDate(dueOn)}</span>`;
   if (dueOn === today) return `<span class="task-meta task-due-today">Vandaag</span>`;
-  return `<span class="task-meta">${dueOn}</span>`;
+  return `<span class="task-meta">${formatTaskDate(dueOn)}</span>`;
 }
 
 async function loadTasks() {
@@ -791,60 +832,6 @@ function lineChartHtml(vals, dates, color, target = null, showZone = true) {
   </svg>`;
 }
 
-function renderHeatmap(allRows) {
-  if (!allRows.length) return '';
-
-  const scoreMap = {};
-  allRows.forEach(r => {
-    scoreMap[r.date] = ['gym','gewerkt','geklust','geschreven'].filter(k => r[k]).length;
-  });
-
-  const pad = n => String(n).padStart(2, '0');
-  const dstr = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  const today = dstr(new Date());
-
-  const start = new Date();
-  start.setDate(start.getDate() - 26 * 7);
-  const startDow = start.getDay();
-  start.setDate(start.getDate() - (startDow === 0 ? 6 : startDow - 1));
-
-  const cur = new Date(start);
-  const monthNames = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
-  const weeks = [];
-
-  for (let w = 0; w < 27; w++) {
-    const week = { days: [], monthLabel: '' };
-    for (let d = 0; d < 7; d++) {
-      const ds = dstr(cur);
-      if (d === 0 && cur.getDate() <= 7) week.monthLabel = monthNames[cur.getMonth()];
-      week.days.push({ date: ds, score: scoreMap[ds] || 0, future: ds > today });
-      cur.setDate(cur.getDate() + 1);
-    }
-    weeks.push(week);
-  }
-
-  const monthRow = `<div style="display:inline-flex;gap:2px;min-width:max-content;margin-bottom:4px">`
-    + weeks.map(w => `<div style="width:11px;font-size:0.6rem;color:var(--text-muted);text-align:center;overflow:hidden">${w.monthLabel}</div>`).join('')
-    + `</div>`;
-
-  const opacities = [1, 0.3, 0.55, 0.78, 1.0];
-  const cols = weeks.map(w => {
-    const cells = w.days.map(day => {
-      if (day.future) return `<div class="heatmap-cell" style="opacity:0"></div>`;
-      if (day.score === 0) return `<div class="heatmap-cell"></div>`;
-      return `<div class="heatmap-cell" style="background:var(--accent);opacity:${opacities[day.score]}"></div>`;
-    }).join('');
-    return `<div class="heatmap-col">${cells}</div>`;
-  }).join('');
-
-  return `<div class="insight-card">
-    <h3>Overzicht — afgelopen 6 maanden</h3>
-    <div class="heatmap-wrap">
-      ${monthRow}
-      <div class="heatmap">${cols}</div>
-    </div>
-  </div>`;
-}
 
 function renderInsights(rows, allRows, from, to, period) {
   if (!rows.length) {
@@ -854,7 +841,7 @@ function renderInsights(rows, allRows, from, to, period) {
 
   const essentials = ['gym','gewerkt','geklust','geschreven'];
   const bonuses    = ['geleest','gemediteerd','tijd_met_anderen','gespeeld'];
-  const bad        = ['te_veel_weinig_eten','gedoomscrolled','gemasturbeerd','porno_gekeken'];
+  const bad        = ['te_veel_weinig_eten','gedoomscrolled']; // gemasturbeerd + porno_gekeken tijdelijk verborgen
   const labels = {
     gym:'Gym', gewerkt:'Gewerkt', geklust:'Geklust', geschreven:'Geschreven',
     geleest:'Gelezen', gemediteerd:'Gemediteerd', tijd_met_anderen:'Sociaal', gespeeld:'Gespeeld',
@@ -1035,8 +1022,127 @@ function renderInsights(rows, allRows, from, to, period) {
       ${lineChartHtml(weightVals, weightDates, 'var(--success)', 75.0, false)}
     </div>
 
-    ${renderHeatmap(allRows)}
   `;
+}
+
+// ── Claude AI narratieve reflectie ────────────────────────────────────────────
+async function generateInsightNarrative() {
+  if (!cfg.geminiKey) {
+    showToast('Configureer eerst de Gemini API key in Instellingen');
+    navigate('settings');
+    return;
+  }
+  if (!cfg.sbUrl || !cfg.sbKey) {
+    showToast('Supabase niet geconfigureerd');
+    return;
+  }
+
+  const btn = document.getElementById('generate-narrative-btn');
+  const cardEl = document.getElementById('narrative-card');
+  btn.disabled = true;
+  btn.textContent = 'Bezig…';
+  cardEl.style.display = 'block';
+  cardEl.innerHTML = '<div class="narrative-loading">Reflectie genereren…</div>';
+
+  try {
+    const to = todayStr();
+    const from = offsetDate(to, -13);
+    const rows = await sbFetch(`/habit_entries?date=gte.${from}&date=lte.${to}&order=date.asc`);
+
+    // Fetch ICS texts once per URL
+    const icsTexts = await Promise.all(cfg.calUrls.map(async url => {
+      try {
+        const res = await fetch(url);
+        return res.ok ? await res.text() : null;
+      } catch { return null; }
+    }));
+
+    // Fetch ICS texts once per URL
+    const icsTexts = await Promise.all(cfg.calUrls.map(async url => {
+      try {
+        const res = await fetch(url);
+        return res.ok ? await res.text() : null;
+      } catch { return null; }
+    }));
+
+    const dayNames = ['zo','ma','di','wo','do','vr','za'];
+    const bool = v => v ? '✓' : '-';
+
+    // Build habit data lines
+    const habitLines = [];
+    for (let i = 0; i < 14; i++) {
+      const d = offsetDate(from, i);
+      const [y,mo,dy] = d.split('-');
+      const dt = new Date(+y, +mo-1, +dy);
+      const label = `${dy}-${mo} (${dayNames[dt.getDay()]})`;
+      const r = (rows || []).find(x => x.date === d) || {};
+      habitLines.push(
+        `${label}: gym:${bool(r.gym)} gew:${bool(r.gewerkt)} schr:${bool(r.geschreven)} gel:${bool(r.geleest)} med:${bool(r.gemediteerd)} soc:${bool(r.tijd_met_anderen)} kl:${bool(r.geklust)} sp:${bool(r.gespeeld)} eten:${bool(r.te_veel_weinig_eten)} doom:${bool(r.gedoomscrolled)} | slaap:${r.slaap != null ? r.slaap + 'u' : '?'} gewicht:${r.gewicht != null ? r.gewicht + 'kg' : '?'} stemming:${r.mood_emoji || '?'}`
+      );
+    }
+
+    // Build calendar lines
+    const calLines = [];
+    for (let i = 0; i < 14; i++) {
+      const d = offsetDate(from, i);
+      const [y,mo,dy] = d.split('-');
+      const dt = new Date(+y, +mo-1, +dy);
+      const label = `${dy}-${mo} (${dayNames[dt.getDay()]})`;
+      const dayEvents = [];
+      for (const text of icsTexts) {
+        if (text) dayEvents.push(...parseICS(text, d));
+      }
+      dayEvents.sort((a, b) => a.dtstart < b.dtstart ? -1 : 1);
+      if (dayEvents.length) {
+        calLines.push(`${label}: ${dayEvents.map(e => e.time ? `${e.time} ${e.summary}` : e.summary).join(', ')}`);
+      }
+    }
+
+    const prompt = `Je bent een persoonlijke reflectieassistent voor Hans, een Belgische psycholoog. Analyseer zijn gewoonte- en welzijnsdata van de afgelopen 14 dagen. Schrijf een zakelijke reflectie in het Nederlands — geen aanmoedigingen, geen lyrisch taalgebruik. Spreek hem aan met "je".
+
+HABITDATA (${from} t/m ${to}):
+Kolommen: gym | gewerkt (gew) | geschreven (schr) | gelezen (gel) | gemediteerd (med) | sociaal (soc) | geklust (kl) | gespeeld (sp) | te veel/weinig gegeten (eten) | doomscrolled (doom) | slaapuren | gewicht | stemming
+${habitLines.join('\n')}
+
+${calLines.length ? `AGENDA:\n${calLines.join('\n')}` : 'AGENDA: geen kalendergegevens beschikbaar'}
+
+Schrijf een reflectie van 3 korte alinea's (max. 250 woorden totaal):
+1. Opvallende patronen of trends in de data.
+2. Verbanden tussen variabelen (bijv. slaap ↔ stemming, gewoonten ↔ regelmaat).
+3. Één concrete observatie voor de komende week.`;
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${cfg.geminiKey}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 800 },
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const rawText = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+    if (!rawText) throw new Error('Geen antwoord ontvangen');
+    const formatted = '<p>' + rawText.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
+
+    cardEl.innerHTML = `
+      <div class="narrative-text">${formatted}</div>
+      <p class="narrative-meta">Gegenereerd op ${formatDateNL(to)}</p>`;
+
+  } catch(e) {
+    cardEl.innerHTML = `<div class="narrative-error">⚠ ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Genereer reflectie';
+  }
 }
 
 // ── Task Detail ───────────────────────────────────────────────────────────────
@@ -1134,69 +1240,18 @@ function populateSettingsFields() {
   document.getElementById('sb-url').value = cfg.sbUrl;
   document.getElementById('sb-key').value = cfg.sbKey;
   document.getElementById('asana-pat').value = cfg.asanaPat;
+  document.getElementById('gemini-key').value = cfg.geminiKey;
+  document.getElementById('cal-urls-input').value = cfg.calUrls.join('\n');
   updateNotificationStatus();
-  renderCalSettings();
 }
 
-function renderCalSettings() {
-  const list = document.getElementById('cal-url-list');
-  if (!list) return;
-  const urls = cfg.calUrls;
-  list.innerHTML = urls.length
-    ? urls.map((url, i) => `
-        <div class="cal-url-row">
-          <span class="cal-url-label">${url}</span>
-          <button class="cal-url-remove" onclick="removeCalUrl(${i})">×</button>
-        </div>`).join('')
-    : '';
-  updateCalStatus();
-}
-
-function addCalUrl() {
-  const input = document.getElementById('cal-url-input');
-  const url = input.value.trim().replace(/^webcal:\/\//i, 'https://');
-  if (!url) return;
-  const urls = cfg.calUrls;
-  if (urls.includes(url)) { showToast('URL al toegevoegd'); return; }
-  urls.push(url);
+function saveCalUrls() {
+  const raw = document.getElementById('cal-urls-input').value;
+  const urls = raw.split('\n')
+    .map(u => u.trim().replace(/^webcal:\/\//i, 'https://'))
+    .filter(Boolean);
   cfg.calUrls = urls;
-  input.value = '';
-  renderCalSettings();
-  showToast('✓ Kalender toegevoegd');
-  loadCalendarEvents(state.date);
-}
-
-function removeCalUrl(i) {
-  const urls = cfg.calUrls;
-  urls.splice(i, 1);
-  cfg.calUrls = urls;
-  renderCalSettings();
-  loadCalendarEvents(state.date);
-}
-
-async function testCalUrl() {
-  const statusEl = document.getElementById('cal-status');
-  const url = document.getElementById('cal-url-input').value.trim().replace(/^webcal:\/\//i, 'https://');
-  if (!url) { showToast('Voer eerst een URL in'); return; }
-  statusEl.innerHTML = `<span class="status-dot idle"></span> Testen…`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    if (!text.includes('BEGIN:VCALENDAR')) throw new Error('Geen geldig ICS-bestand');
-    statusEl.innerHTML = `<span class="status-dot ok"></span> Kalender gevonden`;
-  } catch(e) {
-    statusEl.innerHTML = `<span class="status-dot err"></span> Fout: ${e.message}`;
-  }
-}
-
-function updateCalStatus() {
-  const el = document.getElementById('cal-status');
-  if (!el) return;
-  const n = cfg.calUrls.length;
-  el.innerHTML = n
-    ? `<span class="status-dot ok"></span> ${n} kalender${n > 1 ? 's' : ''} geconfigureerd`
-    : `<span class="status-dot idle"></span> Geen kalenders toegevoegd`;
+  showToast('✓ Kalender-URL' + (urls.length !== 1 ? 's' : '') + ' opgeslagen');
 }
 
 function saveSupabase() {
@@ -1209,6 +1264,11 @@ function saveSupabase() {
 function saveAsana() {
   cfg.asanaPat = document.getElementById('asana-pat').value.trim();
   showToast('✓ Asana PAT opgeslagen');
+}
+
+function saveGeminiKey() {
+  cfg.geminiKey = document.getElementById('gemini-key').value.trim();
+  showToast('✓ API key opgeslagen');
 }
 
 async function testSupabase() {
@@ -1243,6 +1303,7 @@ function exportSettings() {
     sb_key: cfg.sbKey,
     asana_pat: cfg.asanaPat,
     cal_urls: cfg.calUrls,
+    gemini_key: cfg.geminiKey,
     notifications_enabled: localStorage.getItem('notifications_enabled') || 'false',
   };
   const json = JSON.stringify(data, null, 2);
@@ -1275,6 +1336,7 @@ function importSettings() {
     if (data.sb_key !== undefined) cfg.sbKey = data.sb_key;
     if (data.asana_pat !== undefined) cfg.asanaPat = data.asana_pat;
     if (data.cal_urls !== undefined) cfg.calUrls = data.cal_urls;
+    if (data.gemini_key !== undefined) cfg.geminiKey = data.gemini_key;
     if (data.notifications_enabled !== undefined) localStorage.setItem('notifications_enabled', data.notifications_enabled);
     document.getElementById('backup-input').value = '';
     populateSettingsFields();
@@ -1394,6 +1456,7 @@ function initListeners() {
   document.getElementById('sleep-minus').addEventListener('click', () => {
     state.sleep = Math.max(0, +(state.sleep - 0.5).toFixed(1));
     document.getElementById('sleep-value').textContent = state.sleep.toFixed(1);
+    updateSleepWarning();
     haptic(5);
     scheduleAutoSave();
   });
@@ -1401,6 +1464,7 @@ function initListeners() {
   document.getElementById('sleep-plus').addEventListener('click', () => {
     state.sleep = Math.min(24, +(state.sleep + 0.5).toFixed(1));
     document.getElementById('sleep-value').textContent = state.sleep.toFixed(1);
+    updateSleepWarning();
     haptic(5);
     scheduleAutoSave();
   });
@@ -1408,6 +1472,7 @@ function initListeners() {
   // Weight
   document.getElementById('weight-input').addEventListener('input', e => {
     state.weight = e.target.value ? +e.target.value : null;
+    updateWeightWarning();
     scheduleAutoSave();
   });
 
