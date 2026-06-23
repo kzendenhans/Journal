@@ -4,11 +4,9 @@
 const cfg = {
   get sbUrl()  { return localStorage.getItem('sb_url') || ''; },
   get sbKey()  { return localStorage.getItem('sb_key') || ''; },
-  get asanaPat(){ return localStorage.getItem('asana_pat') || ''; },
   get geminiKey() { return localStorage.getItem('gemini_key') || ''; },
   set sbUrl(v)  { localStorage.setItem('sb_url', v); },
   set sbKey(v)  { localStorage.setItem('sb_key', v); },
-  set asanaPat(v){ localStorage.setItem('asana_pat', v); },
   set geminiKey(v) { localStorage.setItem('gemini_key', v); },
 };
 
@@ -24,10 +22,6 @@ const state = {
   emotions: {},
   notes: '',
   dirtyCheckin: false,
-  tasks: [],
-  projects: [],
-  asanaWorkspace: null,
-  taskFilter: 'all',
 };
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
@@ -151,71 +145,6 @@ async function upsertEntry(data) {
   });
 }
 
-// ── Asana helpers ─────────────────────────────────────────────────────────────
-async function asanaFetch(path, opts={}) {
-  if (!cfg.asanaPat) throw new Error('Asana PAT niet geconfigureerd');
-  const base = 'https://app.asana.com/api/1.0';
-  const headers = {
-    'Authorization': `Bearer ${cfg.asanaPat}`,
-    'Accept': 'application/json',
-    'Content-Type': 'application/json',
-    ...opts.headers,
-  };
-  const res = await fetch(`${base}${path}`, { ...opts, headers });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Asana ${res.status}: ${err}`);
-  }
-  const json = await res.json();
-  return json.data;
-}
-
-async function getAsanaWorkspace() {
-  if (state.asanaWorkspace) return state.asanaWorkspace;
-  const workspaces = await asanaFetch('/workspaces');
-  state.asanaWorkspace = workspaces[0].gid;
-  return state.asanaWorkspace;
-}
-
-async function loadAsanaTasks() {
-  const ws = await getAsanaWorkspace();
-  // Get user's GID first
-  const me = await asanaFetch('/users/me');
-  const tasks = await asanaFetch(
-    `/tasks?workspace=${ws}&assignee=${me.gid}&completed_since=now&opt_fields=gid,name,due_on,notes,projects,projects.name,projects.color&limit=100`
-  );
-  // Also fetch projects for the add-task modal
-  const projects = await asanaFetch(
-    `/projects?workspace=${ws}&archived=false&opt_fields=gid,name,color&limit=50`
-  );
-  return { tasks, projects };
-}
-
-async function completeAsanaTask(gid) {
-  return asanaFetch(`/tasks/${gid}`, {
-    method: 'PUT',
-    body: JSON.stringify({ data: { completed: true } }),
-  });
-}
-
-async function updateAsanaTask(gid, data) {
-  return asanaFetch(`/tasks/${gid}`, {
-    method: 'PUT',
-    body: JSON.stringify({ data }),
-  });
-}
-
-async function createAsanaTask(name, projectGid, dueOn) {
-  const ws = await getAsanaWorkspace();
-  const data = { name, workspace: ws };
-  if (projectGid) data.projects = [projectGid];
-  if (dueOn) data.due_on = dueOn;
-  return asanaFetch('/tasks', {
-    method: 'POST',
-    body: JSON.stringify({ data }),
-  });
-}
-
 // ── Navigation ────────────────────────────────────────────────────────────────
 function navigate(screenId) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -223,7 +152,6 @@ function navigate(screenId) {
   document.getElementById(`screen-${screenId}`).classList.add('active');
   document.querySelector(`.nav-item[data-screen="${screenId}"]`).classList.add('active');
 
-  if (screenId === 'tasks') loadTasks();
   if (screenId === 'insights') loadInsights();
   if (screenId === 'settings') populateSettingsFields();
 
@@ -468,207 +396,6 @@ async function saveCheckin(silent = false) {
   }
 
   if (!silent) { btn.disabled = false; btn.textContent = 'Opslaan'; }
-}
-
-// ── Tasks Screen ──────────────────────────────────────────────────────────────
-const PROJECT_COLORS = {
-  dark_pink: '#e8698a', light_pink: '#f8a5c2', red: '#e8394d',
-  bright_red: '#fc4d4d', dark_orange: '#e07a5f', dark_brown: '#b45309',
-  light_orange: '#fbbf24', dark_yellow: '#d97706', light_yellow: '#f9e154',
-  dark_green: '#10b981', light_green: '#6ee7b7', teal: '#14b8a6',
-  dark_teal: '#0f766e', light_blue: '#60a5fa', dark_blue: '#3b82f6',
-  light_purple: '#a78bfa', dark_purple: '#7c3aed',
-};
-
-function taskProjectColor(task) {
-  if (!task.projects || !task.projects.length) return '#64748b';
-  const color = task.projects[0].color;
-  return PROJECT_COLORS[color] || '#64748b';
-}
-
-function formatTaskDate(str) {
-  const [y, m, d] = str.split('-');
-  return `${d}-${m}-${y}`;
-}
-
-function dueLabelHtml(dueOn) {
-  if (!dueOn) return '';
-  const today = todayStr();
-  if (dueOn < today) return `<span class="task-meta task-due-overdue">Verlopen: ${formatTaskDate(dueOn)}</span>`;
-  if (dueOn === today) return `<span class="task-meta task-due-today">Vandaag</span>`;
-  return `<span class="task-meta">${formatTaskDate(dueOn)}</span>`;
-}
-
-async function loadTasks() {
-  const container = document.getElementById('tasks-content');
-  if (!cfg.asanaPat) {
-    container.innerHTML = `<div class="empty">Configureer je Asana PAT in <a href="#" onclick="navigate('settings')" style="color:var(--primary)">Instellingen</a>.</div>`;
-    return;
-  }
-
-  container.innerHTML = `<div class="loading"><div class="spinner"></div>Laden…</div>`;
-
-  try {
-    const { tasks, projects } = await loadAsanaTasks();
-    state.tasks = tasks;
-    state.projects = projects;
-    renderTasks();
-    populateProjectSelect();
-  } catch (e) {
-    container.innerHTML = `<div class="empty">⚠ Kan taken niet laden.<br><small>${e.message}</small></div>`;
-  }
-}
-
-function renderTasks() {
-  const container = document.getElementById('tasks-content');
-
-  const today = todayStr();
-  const sunDate = new Date();
-  sunDate.setDate(sunDate.getDate() + (sunDate.getDay() === 0 ? 0 : 7 - sunDate.getDay()));
-  const weekEnd = `${sunDate.getFullYear()}-${String(sunDate.getMonth()+1).padStart(2,'0')}-${String(sunDate.getDate()).padStart(2,'0')}`;
-
-  let tasks = [...state.tasks];
-  if (state.taskFilter === 'today') {
-    tasks = tasks.filter(t => t.due_on === today);
-  } else if (state.taskFilter === 'week') {
-    tasks = tasks.filter(t => t.due_on && t.due_on >= today && t.due_on <= weekEnd);
-  }
-
-  if (!tasks.length) {
-    container.innerHTML = `<div class="empty">${state.taskFilter !== 'all' ? 'Geen taken voor deze periode' : 'Geen openstaande taken'}</div>`;
-    return;
-  }
-
-  // Sort by deadline: overdue/today first, then upcoming, no date last
-  const sorted = tasks.sort((a, b) => {
-    if (!a.due_on && !b.due_on) return 0;
-    if (!a.due_on) return 1;
-    if (!b.due_on) return -1;
-    return a.due_on < b.due_on ? -1 : 1;
-  });
-
-  let html = '';
-  sorted.forEach(task => {
-    const projectName = task.projects && task.projects.length ? task.projects[0].name : '';
-    const projectColor = taskProjectColor(task);
-    const projectHtml = projectName
-      ? `<span style="display:inline-flex;align-items:center;gap:4px;color:var(--text-muted)"><span style="width:5px;height:5px;border-radius:50%;background:${projectColor};display:inline-block;flex-shrink:0"></span>${projectName}</span>`
-      : '';
-    const due = dueLabelHtml(task.due_on);
-    const meta = [projectHtml, due].filter(Boolean).join('<span style="color:var(--border)"> · </span>');
-
-    html += `
-      <div class="task-item" data-gid="${task.gid}">
-        <div class="task-check" onclick="completeTask('${task.gid}', this.closest('.task-item'))"></div>
-        <div class="task-body" onclick="openTaskDetail('${task.gid}')">
-          <div class="task-name">${task.name}</div>
-          ${meta ? `<div class="task-meta" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:3px">${meta}</div>` : ''}
-        </div>
-      </div>`;
-  });
-
-  container.innerHTML = html;
-}
-
-let _pending = null;
-
-async function _commitTask(gid, el, checkEl) {
-  try {
-    await completeAsanaTask(gid);
-    el.remove();
-    state.tasks = state.tasks.filter(t => t.gid !== gid);
-    if (!document.querySelectorAll('.task-item').length) {
-      document.getElementById('tasks-content').innerHTML = `<div class="empty">Geen openstaande taken</div>`;
-    }
-  } catch(e) {
-    el.classList.remove('completing');
-    checkEl.textContent = '';
-    checkEl.style.cssText = '';
-    showToast('⚠ Kan taak niet afvinken');
-  }
-}
-
-function _clearPending(commit) {
-  if (!_pending) return;
-  clearTimeout(_pending.timerId);
-  clearInterval(_pending.countdownId);
-  document.getElementById('undo-bar').classList.remove('show');
-  const { gid, el, checkEl } = _pending;
-  _pending = null;
-  if (commit) {
-    _commitTask(gid, el, checkEl);
-  } else {
-    el.classList.remove('completing');
-    checkEl.textContent = '';
-    checkEl.style.cssText = '';
-  }
-}
-
-function completeTask(gid, el) {
-  if (el.classList.contains('completing')) return;
-  if (_pending) _clearPending(true);
-  haptic(12);
-  el.classList.add('completing');
-  const checkEl = el.querySelector('.task-check');
-  checkEl.textContent = '✓';
-  checkEl.style.cssText = 'border-color:var(--success);background:rgba(74,124,89,0.12);color:var(--success)';
-
-  let secs = 5;
-  const labelEl = document.getElementById('undo-label');
-  labelEl.textContent = `Afgevinkt (${secs}s)`;
-  document.getElementById('undo-bar').classList.add('show');
-
-  const countdownId = setInterval(() => {
-    secs--;
-    if (secs > 0) labelEl.textContent = `Afgevinkt (${secs}s)`;
-  }, 1000);
-
-  const timerId = setTimeout(() => _clearPending(true), 5000);
-  _pending = { gid, el, checkEl, timerId, countdownId };
-}
-
-function undoCompleteTask() {
-  _clearPending(false);
-}
-
-function populateProjectSelect() {
-  const sel = document.getElementById('new-task-project');
-  sel.innerHTML = `<option value="">Project (optioneel)</option>`;
-  state.projects.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.gid;
-    opt.textContent = p.name;
-    sel.appendChild(opt);
-  });
-}
-
-function openModal() {
-  document.getElementById('new-task-name').value = '';
-  document.getElementById('new-task-due').value = '';
-  document.getElementById('task-modal').classList.add('open');
-  setTimeout(() => document.getElementById('new-task-name').focus(), 300);
-}
-
-function closeModal() {
-  document.getElementById('task-modal').classList.remove('open');
-}
-
-async function createTask() {
-  const name = document.getElementById('new-task-name').value.trim();
-  if (!name) { showToast('Voer een taaknaam in'); return; }
-  const projectGid = document.getElementById('new-task-project').value;
-  const dueOn = document.getElementById('new-task-due').value;
-
-  closeModal();
-  try {
-    const task = await createAsanaTask(name, projectGid, dueOn);
-    showToast('✓ Taak aangemaakt');
-    // Reload tasks to show new task
-    await loadTasks();
-  } catch (e) {
-    showToast('⚠ Aanmaken mislukt');
-    console.error(e);
-  }
 }
 
 // ── Insights Screen ───────────────────────────────────────────────────────────
@@ -1096,101 +823,10 @@ Schrijf een reflectie van 3 korte alinea's (max. 250 woorden totaal):
   }
 }
 
-// ── Task Detail ───────────────────────────────────────────────────────────────
-async function openTaskDetail(gid) {
-  const task = state.tasks.find(t => t.gid === gid);
-  if (!task) return;
-
-  const projectName = task.projects && task.projects.length ? task.projects[0].name : '—';
-  const projectColor = taskProjectColor(task);
-
-  document.getElementById('detail-name').value = task.name;
-  document.getElementById('detail-due').value = task.due_on || '';
-  document.getElementById('detail-notes').value = task.notes || '';
-  document.getElementById('detail-project').innerHTML =
-    `<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:${projectColor};display:inline-block"></span>${projectName}</span>`;
-
-  // Reset delete button state
-  const delBtn = document.querySelector('#task-detail-modal .btn-danger');
-  if (delBtn) { delBtn.textContent = 'Verwijder'; delete delBtn.dataset.confirm; }
-
-  const modal = document.getElementById('task-detail-modal');
-  modal.dataset.gid = gid;
-  modal.classList.add('open');
-
-  // Load subtasks
-  const subtasksEl = document.getElementById('detail-subtasks');
-  subtasksEl.innerHTML = `<div class="subtask-item" style="color:var(--text-muted)">Laden…</div>`;
-  try {
-    const subs = await asanaFetch(`/tasks/${gid}/subtasks?opt_fields=gid,name,completed&limit=50`);
-    if (!subs || !subs.length) {
-      subtasksEl.innerHTML = `<div class="subtask-item" style="color:var(--text-muted)">Geen subtaken</div>`;
-    } else {
-      subtasksEl.innerHTML = subs.map(s => `
-        <div class="subtask-item">
-          <div class="subtask-dot ${s.completed ? 'done' : ''}"></div>
-          <span style="${s.completed ? 'text-decoration:line-through;opacity:0.45' : ''}">${s.name}</span>
-        </div>`).join('');
-    }
-  } catch(e) {
-    subtasksEl.innerHTML = `<div class="subtask-item" style="color:var(--text-muted)">Kan subtaken niet laden</div>`;
-  }
-}
-
-function deleteTask() {
-  const delBtn = document.querySelector('#task-detail-modal .btn-danger');
-  if (delBtn.dataset.confirm !== 'true') {
-    delBtn.textContent = 'Zeker?';
-    delBtn.dataset.confirm = 'true';
-    setTimeout(() => {
-      if (delBtn.dataset.confirm === 'true') {
-        delBtn.textContent = 'Verwijder';
-        delete delBtn.dataset.confirm;
-      }
-    }, 3000);
-    return;
-  }
-  const gid = document.getElementById('task-detail-modal').dataset.gid;
-  asanaFetch(`/tasks/${gid}`, { method: 'DELETE' })
-    .then(() => {
-      state.tasks = state.tasks.filter(t => t.gid !== gid);
-      renderTasks();
-      closeTaskDetail();
-      showToast('Taak verwijderd');
-    })
-    .catch(() => showToast('⚠ Verwijderen mislukt'));
-}
-
-function closeTaskDetail() {
-  document.getElementById('task-detail-modal').classList.remove('open');
-}
-
-async function saveTaskDetail() {
-  const modal = document.getElementById('task-detail-modal');
-  const gid = modal.dataset.gid;
-  const name  = document.getElementById('detail-name').value.trim();
-  const due   = document.getElementById('detail-due').value || null;
-  const notes = document.getElementById('detail-notes').value;
-
-  if (!name) { showToast('Naam is verplicht'); return; }
-
-  try {
-    await updateAsanaTask(gid, { name, due_on: due, notes });
-    const task = state.tasks.find(t => t.gid === gid);
-    if (task) { task.name = name; task.due_on = due; task.notes = notes; }
-    renderTasks();
-    closeTaskDetail();
-    showToast('✓ Taak bijgewerkt');
-  } catch(e) {
-    showToast('⚠ Opslaan mislukt');
-  }
-}
-
 // ── Settings Screen ───────────────────────────────────────────────────────────
 function populateSettingsFields() {
   document.getElementById('sb-url').value = cfg.sbUrl;
   document.getElementById('sb-key').value = cfg.sbKey;
-  document.getElementById('asana-pat').value = cfg.asanaPat;
   document.getElementById('gemini-key').value = cfg.geminiKey;
   updateNotificationStatus();
 }
@@ -1200,11 +836,6 @@ function saveSupabase() {
   cfg.sbKey = document.getElementById('sb-key').value.trim();
   showToast('✓ Supabase opgeslagen');
   loadCheckinForDate(state.date);
-}
-
-function saveAsana() {
-  cfg.asanaPat = document.getElementById('asana-pat').value.trim();
-  showToast('✓ Asana PAT opgeslagen');
 }
 
 function saveGeminiKey() {
@@ -1243,24 +874,11 @@ async function testSupabase() {
   }
 }
 
-async function testAsana() {
-  const statusEl = document.getElementById('asana-status');
-  statusEl.innerHTML = `<span class="status-dot idle"></span> Testen…`;
-  try {
-    cfg.asanaPat = document.getElementById('asana-pat').value.trim();
-    const me = await asanaFetch('/users/me');
-    statusEl.innerHTML = `<span class="status-dot ok"></span> Ingelogd als ${me.name}`;
-  } catch(e) {
-    statusEl.innerHTML = `<span class="status-dot err"></span> Fout: ${e.message}`;
-  }
-}
-
 // ── Backup / herstel instellingen ─────────────────────────────────────────────
 function exportSettings() {
   const data = {
     sb_url: cfg.sbUrl,
     sb_key: cfg.sbKey,
-    asana_pat: cfg.asanaPat,
     gemini_key: cfg.geminiKey,
     notifications_enabled: localStorage.getItem('notifications_enabled') || 'false',
   };
@@ -1294,7 +912,6 @@ function importSettings() {
     const data = JSON.parse(raw);
     if (data.sb_url !== undefined) cfg.sbUrl = data.sb_url;
     if (data.sb_key !== undefined) cfg.sbKey = data.sb_key;
-    if (data.asana_pat !== undefined) cfg.asanaPat = data.asana_pat;
     if (data.gemini_key !== undefined) cfg.geminiKey = data.gemini_key;
     if (data.notifications_enabled !== undefined) localStorage.setItem('notifications_enabled', data.notifications_enabled);
     document.getElementById('backup-input').value = '';
@@ -1481,27 +1098,6 @@ function initListeners() {
       localStorage.setItem('theme_override_hour', new Date().getHours());
       applyTheme(!isDark);
     });
-  });
-
-  // Task filter buttons
-  document.querySelectorAll('.task-filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.task-filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state.taskFilter = btn.dataset.filter;
-      renderTasks();
-    });
-  });
-
-  // Add task button
-  document.getElementById('add-task-btn').addEventListener('click', openModal);
-
-  // Close modals on overlay click
-  document.getElementById('task-modal').addEventListener('click', e => {
-    if (e.target === document.getElementById('task-modal')) closeModal();
-  });
-  document.getElementById('task-detail-modal').addEventListener('click', e => {
-    if (e.target === document.getElementById('task-detail-modal')) closeTaskDetail();
   });
 
   // Keyboard dismiss: tik buiten invoerveld sluit toetsenbord
@@ -1714,7 +1310,6 @@ function restoreFromBookmark() {
     const data = JSON.parse(json);
     if (data.sb_url !== undefined) cfg.sbUrl = data.sb_url;
     if (data.sb_key !== undefined) cfg.sbKey = data.sb_key;
-    if (data.asana_pat !== undefined) cfg.asanaPat = data.asana_pat;
     if (data.gemini_key !== undefined) cfg.geminiKey = data.gemini_key;
     if (data.notifications_enabled !== undefined) localStorage.setItem('notifications_enabled', data.notifications_enabled);
     history.replaceState(null, '', location.pathname);

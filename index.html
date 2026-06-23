@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=139">
+  <link rel="stylesheet" href="style.css?v=141">
 </head>
 <body>
 <div id="app">
@@ -160,25 +160,6 @@
       </div>
     </section>
 
-    <!-- ── Tasks Screen ── -->
-    <section id="screen-tasks" class="screen">
-      <div class="screen-header">
-        <h1>Taken</h1>
-        <div style="display:flex;align-items:center;gap:6px">
-          <button class="theme-btn theme-toggle-btn" title="Dag/nacht">○</button>
-          <button class="add-btn" id="add-task-btn" title="Taak toevoegen">+</button>
-        </div>
-      </div>
-      <div class="task-filter">
-        <button class="task-filter-btn active" data-filter="all">Alles</button>
-        <button class="task-filter-btn" data-filter="today">Vandaag</button>
-        <button class="task-filter-btn" data-filter="week">Deze week</button>
-      </div>
-      <div id="tasks-content">
-        <div class="loading"><div class="spinner"></div>Laden…</div>
-      </div>
-    </section>
-
     <!-- ── Insights Screen ── -->
     <section id="screen-insights" class="screen">
       <div class="screen-header screen-header-stacked">
@@ -205,13 +186,23 @@
         </div>
       </div>
 
-      <div id="narrative-section">
-        <button id="generate-narrative-btn" onclick="generateInsightNarrative()">Genereer reflectie</button>
-        <div id="narrative-card" style="display:none"></div>
-      </div>
-
       <div id="insights-content">
         <div class="loading"><div class="spinner"></div>Laden…</div>
+      </div>
+    </section>
+
+    <!-- ── Reflections Screen ── -->
+    <section id="screen-reflections" class="screen">
+      <div class="screen-header">
+        <h1>Reflecties</h1>
+        <button class="theme-btn theme-toggle-btn" title="Dag/nacht">○</button>
+      </div>
+      <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:16px">
+        AI-reflectie op basis van je habitdata en agenda van de afgelopen 14 dagen.
+      </p>
+      <div id="narrative-section-main">
+        <button id="generate-narrative-btn" onclick="generateInsightNarrative()">Genereer reflectie</button>
+        <div id="narrative-card" style="display:none"></div>
       </div>
     </section>
 
@@ -236,20 +227,6 @@
           <button class="btn-secondary" style="flex:1;padding:12px" onclick="testSupabase()">Test verbinding</button>
         </div>
       </div>
-
-      <div class="settings-section">
-        <h2>Asana</h2>
-        <label>Personal Access Token</label>
-        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="asana-pat" placeholder="1/…">
-        <div class="connection-status" id="asana-status">
-          <span class="status-dot idle"></span> Niet getest
-        </div>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="save-btn" style="padding:12px" onclick="saveAsana()">Opslaan</button>
-          <button class="btn-secondary" style="flex:1;padding:12px" onclick="testAsana()">Test verbinding</button>
-        </div>
-      </div>
-
 
       <div class="settings-section">
         <h2>Herinneringen</h2>
@@ -302,9 +279,8 @@
       <div class="settings-section">
         <h2>Over</h2>
         <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.6">
-          Dagboek v1.39<br>
-          Data wordt opgeslagen in Supabase.<br>
-          Taken worden gesynchroniseerd met Asana.
+          Dagboek v1.41<br>
+          Data wordt opgeslagen in Supabase.
         </p>
       </div>
     </section>
@@ -317,13 +293,13 @@
       <span class="nav-icon">✓</span>
       <span class="nav-label">Check-in</span>
     </button>
-    <button class="nav-item" data-screen="tasks">
-      <span class="nav-icon">☑</span>
-      <span class="nav-label">Taken</span>
-    </button>
     <button class="nav-item" data-screen="insights">
       <span class="nav-icon">◎</span>
       <span class="nav-label">Inzichten</span>
+    </button>
+    <button class="nav-item" data-screen="reflections">
+      <span class="nav-icon">✦</span>
+      <span class="nav-label">Reflecties</span>
     </button>
     <button class="nav-item" data-screen="settings">
       <span class="nav-icon">≡</span>
@@ -332,50 +308,8 @@
   </nav>
 </div>
 
-<!-- ── Task Detail Modal ── -->
-<div class="modal-overlay" id="task-detail-modal">
-  <div class="modal">
-    <h2>Taak</h2>
-    <label class="modal-label">Naam</label>
-    <input type="text" id="detail-name">
-    <label class="modal-label">Deadline</label>
-    <input type="date" id="detail-due">
-    <label class="modal-label">Project</label>
-    <div id="detail-project" class="detail-project-tag"></div>
-    <label class="modal-label">Notities</label>
-    <textarea id="detail-notes" placeholder="—" style="min-height:72px"></textarea>
-    <label class="modal-label">Subtaken</label>
-    <div id="detail-subtasks" class="detail-subtasks"></div>
-    <div class="modal-actions" style="margin-top:16px">
-      <button class="btn-danger" onclick="deleteTask()">Verwijder</button>
-      <button class="btn-secondary" onclick="closeTaskDetail()">Sluiten</button>
-      <button class="save-btn" style="flex:1.5" onclick="saveTaskDetail()">Opslaan</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Add Task Modal ── -->
-<div class="modal-overlay" id="task-modal">
-  <div class="modal">
-    <h2>Nieuwe taak</h2>
-    <input type="text" id="new-task-name" placeholder="Taaknaam…">
-    <select id="new-task-project">
-      <option value="">Project (optioneel)</option>
-    </select>
-    <input type="date" id="new-task-due" placeholder="Deadline (optioneel)">
-    <div class="modal-actions">
-      <button class="btn-secondary" onclick="closeModal()">Annuleren</button>
-      <button class="save-btn" onclick="createTask()">Toevoegen</button>
-    </div>
-  </div>
-</div>
-
-<div class="undo-bar" id="undo-bar">
-  <span id="undo-label">Afgevinkt</span>
-  <button class="undo-bar-btn" onclick="undoCompleteTask()">Ongedaan maken</button>
-</div>
 <div class="toast" id="toast"></div>
 
-<script src="app.js?v=139"></script>
+<script src="app.js?v=141"></script>
 </body>
 </html>
