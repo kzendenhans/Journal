@@ -5,12 +5,10 @@ const cfg = {
   get sbUrl()  { return localStorage.getItem('sb_url') || ''; },
   get sbKey()  { return localStorage.getItem('sb_key') || ''; },
   get asanaPat(){ return localStorage.getItem('asana_pat') || ''; },
-  get calUrls() { return JSON.parse(localStorage.getItem('cal_urls') || '[]'); },
   get geminiKey() { return localStorage.getItem('gemini_key') || ''; },
   set sbUrl(v)  { localStorage.setItem('sb_url', v); },
   set sbKey(v)  { localStorage.setItem('sb_key', v); },
   set asanaPat(v){ localStorage.setItem('asana_pat', v); },
-  set calUrls(v) { localStorage.setItem('cal_urls', JSON.stringify(v)); },
   set geminiKey(v) { localStorage.setItem('gemini_key', v); },
 };
 
@@ -85,41 +83,6 @@ function scheduleAutoSave() {
 
 function showSettings() {
   navigate('settings');
-}
-
-// ── Kalender (ICS) ───────────────────────────────────────────────────────────
-function parseICS(text, dateStr) {
-  const target = dateStr.replace(/-/g, '');
-  const unfolded = text.replace(/\r\n[ \t]/g, '').replace(/\r\n/g, '\n').replace(/\n[ \t]/g, '');
-  const events = [];
-  unfolded.split('BEGIN:VEVENT').slice(1).forEach(block => {
-    const end = block.indexOf('END:VEVENT');
-    if (end === -1) return;
-    const props = {};
-    block.slice(0, end).split('\n').forEach(line => {
-      const ci = line.indexOf(':');
-      if (ci === -1) return;
-      const key = line.slice(0, ci).toUpperCase().split(';')[0];
-      if (!props[key]) props[key] = line.slice(ci + 1).trim();
-    });
-    const summary = (props['SUMMARY'] || '').replace(/\\,/g, ',').replace(/\\n/g, ' ').replace(/\\\\/g, '\\');
-    const dtstart = props['DTSTART'] || '';
-    if (!summary || !dtstart) return;
-    let eventDate, displayTime = '';
-    if (dtstart.endsWith('Z') && dtstart.length > 8) {
-      const d = new Date(Date.UTC(+dtstart.slice(0,4), +dtstart.slice(4,6)-1, +dtstart.slice(6,8), +dtstart.slice(9,11), +dtstart.slice(11,13)));
-      eventDate = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-      displayTime = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-    } else if (dtstart.length > 8) {
-      eventDate = dtstart.slice(0, 8);
-      displayTime = `${dtstart.slice(9,11)}:${dtstart.slice(11,13)}`;
-    } else {
-      eventDate = dtstart.slice(0, 8);
-    }
-    if (eventDate !== target) return;
-    events.push({ summary, time: displayTime, dtstart });
-  });
-  return events.sort((a, b) => a.dtstart < b.dtstart ? -1 : 1);
 }
 
 // ── Supabase helpers ──────────────────────────────────────────────────────────
@@ -1049,13 +1012,12 @@ async function generateInsightNarrative() {
     const from = offsetDate(to, -13);
     const rows = await sbFetch(`/habit_entries?date=gte.${from}&date=lte.${to}&order=date.asc`);
 
-    // Fetch ICS texts once per URL
-    const icsTexts = await Promise.all(cfg.calUrls.map(async url => {
-      try {
-        const res = await fetch(url);
-        return res.ok ? await res.text() : null;
-      } catch { return null; }
-    }));
+    // Kalenderdata via lokale server (draait op Mac)
+    let calendarEvents = [];
+    try {
+      const calRes = await fetch(`http://localhost:7878/calendar?from=${from}&to=${to}`);
+      if (calRes.ok) calendarEvents = await calRes.json();
+    } catch { /* server niet actief, verder zonder kalender */ }
 
     const dayNames = ['zo','ma','di','wo','do','vr','za'];
     const bool = v => v ? '✓' : '-';
@@ -1073,20 +1035,16 @@ async function generateInsightNarrative() {
       );
     }
 
-    // Build calendar lines
+    // Kalenderregels per dag opbouwen
     const calLines = [];
     for (let i = 0; i < 14; i++) {
       const d = offsetDate(from, i);
       const [y,mo,dy] = d.split('-');
       const dt = new Date(+y, +mo-1, +dy);
       const label = `${dy}-${mo} (${dayNames[dt.getDay()]})`;
-      const dayEvents = [];
-      for (const text of icsTexts) {
-        if (text) dayEvents.push(...parseICS(text, d));
-      }
-      dayEvents.sort((a, b) => a.dtstart < b.dtstart ? -1 : 1);
+      const dayEvents = calendarEvents.filter(e => e.datetime.startsWith(d));
       if (dayEvents.length) {
-        calLines.push(`${label}: ${dayEvents.map(e => e.time ? `${e.time} ${e.summary}` : e.summary).join(', ')}`);
+        calLines.push(`${label}: ${dayEvents.map(e => `${e.datetime.slice(11)} ${e.title} (${e.calendar})`).join(', ')}`);
       }
     }
 
@@ -1234,17 +1192,7 @@ function populateSettingsFields() {
   document.getElementById('sb-key').value = cfg.sbKey;
   document.getElementById('asana-pat').value = cfg.asanaPat;
   document.getElementById('gemini-key').value = cfg.geminiKey;
-  document.getElementById('cal-urls-input').value = cfg.calUrls.join('\n');
   updateNotificationStatus();
-}
-
-function saveCalUrls() {
-  const raw = document.getElementById('cal-urls-input').value;
-  const urls = raw.split('\n')
-    .map(u => u.trim().replace(/^webcal:\/\//i, 'https://'))
-    .filter(Boolean);
-  cfg.calUrls = urls;
-  showToast('✓ Kalender-URL' + (urls.length !== 1 ? 's' : '') + ' opgeslagen');
 }
 
 function saveSupabase() {
@@ -1282,29 +1230,6 @@ async function testGroqKey() {
   }
 }
 
-async function testCalUrls() {
-  const statusEl = document.getElementById('cal-test-status');
-  saveCalUrls();
-  const urls = cfg.calUrls;
-  if (!urls.length) { showToast('Voer eerst kalender-URLs in'); return; }
-  statusEl.innerHTML = `<span class="status-dot idle"></span> Testen…`;
-  let ok = 0, fail = 0;
-  await Promise.all(urls.map(async url => {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error();
-      const text = await res.text();
-      if (!text.includes('BEGIN:VCALENDAR')) throw new Error();
-      ok++;
-    } catch { fail++; }
-  }));
-  if (fail === 0) {
-    statusEl.innerHTML = `<span class="status-dot ok"></span> ${ok} kalender${ok !== 1 ? 's' : ''} bereikbaar`;
-  } else {
-    statusEl.innerHTML = `<span class="status-dot err"></span> ${ok} OK, ${fail} mislukt — controleer de URLs`;
-  }
-}
-
 async function testSupabase() {
   const statusEl = document.getElementById('sb-status');
   statusEl.innerHTML = `<span class="status-dot idle"></span> Testen…`;
@@ -1336,7 +1261,6 @@ function exportSettings() {
     sb_url: cfg.sbUrl,
     sb_key: cfg.sbKey,
     asana_pat: cfg.asanaPat,
-    cal_urls: cfg.calUrls,
     gemini_key: cfg.geminiKey,
     notifications_enabled: localStorage.getItem('notifications_enabled') || 'false',
   };
@@ -1371,7 +1295,6 @@ function importSettings() {
     if (data.sb_url !== undefined) cfg.sbUrl = data.sb_url;
     if (data.sb_key !== undefined) cfg.sbKey = data.sb_key;
     if (data.asana_pat !== undefined) cfg.asanaPat = data.asana_pat;
-    if (data.cal_urls !== undefined) cfg.calUrls = data.cal_urls;
     if (data.gemini_key !== undefined) cfg.geminiKey = data.gemini_key;
     if (data.notifications_enabled !== undefined) localStorage.setItem('notifications_enabled', data.notifications_enabled);
     document.getElementById('backup-input').value = '';
@@ -1792,7 +1715,6 @@ function restoreFromBookmark() {
     if (data.sb_url !== undefined) cfg.sbUrl = data.sb_url;
     if (data.sb_key !== undefined) cfg.sbKey = data.sb_key;
     if (data.asana_pat !== undefined) cfg.asanaPat = data.asana_pat;
-    if (data.cal_urls !== undefined) cfg.calUrls = data.cal_urls;
     if (data.gemini_key !== undefined) cfg.geminiKey = data.gemini_key;
     if (data.notifications_enabled !== undefined) localStorage.setItem('notifications_enabled', data.notifications_enabled);
     history.replaceState(null, '', location.pathname);

@@ -265,22 +265,6 @@
       </div>
 
       <div class="settings-section">
-        <h2>Kalender (voor AI-reflectie)</h2>
-        <label>ICS-URL's (één per regel)</label>
-        <textarea id="cal-urls-input" placeholder="https://…" style="min-height:72px;font-size:0.8rem"></textarea>
-        <p style="font-size:0.76rem;color:var(--text-muted);line-height:1.5;margin-top:8px">
-          iCloud: Kalender → ⓘ → Deel kalender → Openbare kalender → kopieer link (vervang webcal:// door https://). Agenda-info wordt enkel gebruikt bij het genereren van reflecties.
-        </p>
-        <div class="connection-status" id="cal-test-status" style="margin-top:10px">
-          <span class="status-dot idle"></span> Niet getest
-        </div>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="save-btn" style="padding:12px" onclick="saveCalUrls()">Opslaan</button>
-          <button class="btn-secondary" style="flex:1;padding:12px" onclick="testCalUrls()">Test</button>
-        </div>
-      </div>
-
-      <div class="settings-section">
         <h2>Groq AI (gratis)</h2>
         <label>API Key</label>
         <input type="text" id="gemini-key" placeholder="gsk_…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
