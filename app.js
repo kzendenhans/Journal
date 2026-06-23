@@ -1264,6 +1264,47 @@ function saveGeminiKey() {
   showToast('✓ API key opgeslagen');
 }
 
+async function testGroqKey() {
+  const statusEl = document.getElementById('groq-status');
+  cfg.geminiKey = document.getElementById('gemini-key').value.trim();
+  if (!cfg.geminiKey) { showToast('Voer eerst een API key in'); return; }
+  statusEl.innerHTML = `<span class="status-dot idle"></span> Testen…`;
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'authorization': `Bearer ${cfg.geminiKey}` },
+      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 10, messages: [{ role: 'user', content: 'Zeg: OK' }] }),
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
+    statusEl.innerHTML = `<span class="status-dot ok"></span> Verbinding OK`;
+  } catch(e) {
+    statusEl.innerHTML = `<span class="status-dot err"></span> Fout: ${e.message}`;
+  }
+}
+
+async function testCalUrls() {
+  const statusEl = document.getElementById('cal-test-status');
+  saveCalUrls();
+  const urls = cfg.calUrls;
+  if (!urls.length) { showToast('Voer eerst kalender-URLs in'); return; }
+  statusEl.innerHTML = `<span class="status-dot idle"></span> Testen…`;
+  let ok = 0, fail = 0;
+  await Promise.all(urls.map(async url => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error();
+      const text = await res.text();
+      if (!text.includes('BEGIN:VCALENDAR')) throw new Error();
+      ok++;
+    } catch { fail++; }
+  }));
+  if (fail === 0) {
+    statusEl.innerHTML = `<span class="status-dot ok"></span> ${ok} kalender${ok !== 1 ? 's' : ''} bereikbaar`;
+  } else {
+    statusEl.innerHTML = `<span class="status-dot err"></span> ${ok} OK, ${fail} mislukt — controleer de URLs`;
+  }
+}
+
 async function testSupabase() {
   const statusEl = document.getElementById('sb-status');
   statusEl.innerHTML = `<span class="status-dot idle"></span> Testen…`;

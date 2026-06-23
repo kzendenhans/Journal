@@ -271,8 +271,12 @@
         <p style="font-size:0.76rem;color:var(--text-muted);line-height:1.5;margin-top:8px">
           iCloud: Kalender → ⓘ → Deel kalender → Openbare kalender → kopieer link (vervang webcal:// door https://). Agenda-info wordt enkel gebruikt bij het genereren van reflecties.
         </p>
-        <div style="margin-top:12px">
+        <div class="connection-status" id="cal-test-status" style="margin-top:10px">
+          <span class="status-dot idle"></span> Niet getest
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
           <button class="save-btn" style="padding:12px" onclick="saveCalUrls()">Opslaan</button>
+          <button class="btn-secondary" style="flex:1;padding:12px" onclick="testCalUrls()">Test</button>
         </div>
       </div>
 
@@ -283,8 +287,12 @@
         <p style="font-size:0.76rem;color:var(--text-muted);line-height:1.5;margin-top:8px">
           Gratis key via <strong>console.groq.com</strong> → API Keys → Create API key. Geen kredietkaart vereist.
         </p>
-        <div style="margin-top:12px">
+        <div class="connection-status" id="groq-status" style="margin-top:10px">
+          <span class="status-dot idle"></span> Niet getest
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
           <button class="save-btn" style="padding:12px" onclick="saveGeminiKey()">Opslaan</button>
+          <button class="btn-secondary" style="flex:1;padding:12px" onclick="testGroqKey()">Test</button>
         </div>
       </div>
 
