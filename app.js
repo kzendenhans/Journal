@@ -153,6 +153,7 @@ function navigate(screenId) {
   document.querySelector(`.nav-item[data-screen="${screenId}"]`).classList.add('active');
 
   if (screenId === 'insights') loadInsights();
+  if (screenId === 'reflections') renderReflectionsScreen();
   if (screenId === 'settings') populateSettingsFields();
 
   // Scroll to top
@@ -715,6 +716,62 @@ function renderInsights(rows, allRows, from, to, period) {
   `;
 }
 
+// ── Reflecties opslaan / weergeven ───────────────────────────────────────────
+function getStoredReflections() {
+  try { return JSON.parse(localStorage.getItem('reflections_log') || '[]'); } catch { return []; }
+}
+
+function saveReflection(date, text) {
+  const list = getStoredReflections().filter(r => r.date !== date);
+  list.unshift({ date, text });
+  localStorage.setItem('reflections_log', JSON.stringify(list));
+}
+
+function formatReflectionText(text) {
+  return '<p>' + text.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
+}
+
+function renderReflectionsScreen() {
+  const today = todayStr();
+  const list = getStoredReflections();
+  const todayEntry = list.find(r => r.date === today);
+  const past = list.filter(r => r.date !== today);
+
+  const btn = document.getElementById('generate-narrative-btn');
+  const cardEl = document.getElementById('narrative-card');
+  const archiveEl = document.getElementById('narrative-archive');
+  if (!btn || !cardEl) return;
+
+  if (todayEntry) {
+    btn.disabled = true;
+    btn.textContent = 'Reflectie voor vandaag reeds gegenereerd';
+    cardEl.style.display = 'block';
+    cardEl.innerHTML = `
+      <div class="narrative-text">${formatReflectionText(todayEntry.text)}</div>
+      <p class="narrative-meta">Gegenereerd op ${formatDateNL(today)}</p>`;
+  } else {
+    btn.disabled = false;
+    btn.textContent = 'Genereer reflectie';
+    cardEl.style.display = 'none';
+    cardEl.innerHTML = '';
+  }
+
+  if (!archiveEl) return;
+  if (!past.length) { archiveEl.innerHTML = ''; return; }
+
+  archiveEl.innerHTML = `<h3 class="reflection-archive-title">Eerdere reflecties</h3>` +
+    past.map(r => `
+      <details class="reflection-item">
+        <summary class="reflection-summary">
+          <span class="reflection-date">${formatDateNL(r.date)}</span>
+          <span class="reflection-chevron">›</span>
+        </summary>
+        <div class="reflection-body">
+          <div class="narrative-text">${formatReflectionText(r.text)}</div>
+        </div>
+      </details>`).join('');
+}
+
 // ── Claude AI narratieve reflectie ────────────────────────────────────────────
 async function generateInsightNarrative() {
   if (!cfg.geminiKey) {
@@ -734,6 +791,7 @@ async function generateInsightNarrative() {
   cardEl.style.display = 'block';
   cardEl.innerHTML = '<div class="narrative-loading">Reflectie genereren…</div>';
 
+  let _generated = false;
   try {
     const to = todayStr();
     const from = offsetDate(to, -13);
@@ -809,17 +867,18 @@ Schrijf een reflectie van 3 korte alinea's (max. 250 woorden totaal):
     const data = await res.json();
     const rawText = (data.choices?.[0]?.message?.content || '').trim();
     if (!rawText) throw new Error('Geen antwoord ontvangen');
-    const formatted = '<p>' + rawText.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
-
-    cardEl.innerHTML = `
-      <div class="narrative-text">${formatted}</div>
-      <p class="narrative-meta">Gegenereerd op ${formatDateNL(to)}</p>`;
+    saveReflection(to, rawText);
+    _generated = true;
 
   } catch(e) {
     cardEl.innerHTML = `<div class="narrative-error">⚠ ${e.message}</div>`;
   } finally {
-    btn.disabled = false;
-    btn.textContent = 'Genereer reflectie';
+    if (_generated) {
+      renderReflectionsScreen();
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Genereer reflectie';
+    }
   }
 }
 
