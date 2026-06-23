@@ -1057,14 +1057,6 @@ async function generateInsightNarrative() {
       } catch { return null; }
     }));
 
-    // Fetch ICS texts once per URL
-    const icsTexts = await Promise.all(cfg.calUrls.map(async url => {
-      try {
-        const res = await fetch(url);
-        return res.ok ? await res.text() : null;
-      } catch { return null; }
-    }));
-
     const dayNames = ['zo','ma','di','wo','do','vr','za'];
     const bool = v => v ? '✓' : '-';
 
