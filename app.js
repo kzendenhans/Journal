@@ -1104,7 +1104,7 @@ Schrijf een reflectie van 3 korte alinea's (max. 250 woorden totaal):
 3. Één concrete observatie voor de komende week.`;
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${cfg.geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${cfg.geminiKey}`,
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
