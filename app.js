@@ -1028,7 +1028,7 @@ function renderInsights(rows, allRows, from, to, period) {
 // ── Claude AI narratieve reflectie ────────────────────────────────────────────
 async function generateInsightNarrative() {
   if (!cfg.geminiKey) {
-    showToast('Configureer eerst de Gemini API key in Instellingen');
+    showToast('Configureer eerst de Groq API key in Instellingen');
     navigate('settings');
     return;
   }
@@ -1103,17 +1103,18 @@ Schrijf een reflectie van 3 korte alinea's (max. 250 woorden totaal):
 2. Verbanden tussen variabelen (bijv. slaap ↔ stemming, gewoonten ↔ regelmaat).
 3. Één concrete observatie voor de komende week.`;
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${cfg.geminiKey}`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 800 },
-        }),
-      }
-    );
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'authorization': `Bearer ${cfg.geminiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 800,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -1121,7 +1122,7 @@ Schrijf een reflectie van 3 korte alinea's (max. 250 woorden totaal):
     }
 
     const data = await res.json();
-    const rawText = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+    const rawText = (data.choices?.[0]?.message?.content || '').trim();
     if (!rawText) throw new Error('Geen antwoord ontvangen');
     const formatted = '<p>' + rawText.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
 
