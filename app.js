@@ -532,7 +532,7 @@ function renderInsights(rows, allRows, from, to, period) {
 
   const essentials = ['gym','gewerkt','geklust','geschreven'];
   const bonuses    = ['geleest','gemediteerd','tijd_met_anderen','gespeeld'];
-  const bad        = ['te_veel_weinig_eten','gedoomscrolled']; // gemasturbeerd + porno_gekeken tijdelijk verborgen
+  const bad        = ['te_veel_weinig_eten','gedoomscrolled','gemasturbeerd','porno_gekeken'];
   const labels = {
     gym:'Gym', gewerkt:'Gewerkt', geklust:'Geklust', geschreven:'Geschreven',
     geleest:'Gelezen', gemediteerd:'Gemediteerd', tijd_met_anderen:'Sociaal', gespeeld:'Gespeeld',
