@@ -939,4 +939,76 @@ details[open] .reflection-chevron {
   padding: 0 16px 14px;
 }
 
+/* ── Stretch routine ── */
+.stretch-details {
+  margin-top: 10px;
+}
+.stretch-details summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  padding: 6px 0;
+}
+.stretch-details summary::-webkit-details-marker { display: none; }
+.stretch-duration {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+.stretch-chevron {
+  margin-left: auto;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+  display: inline-block;
+}
+.stretch-details[open] .stretch-chevron {
+  transform: rotate(90deg);
+}
+.stretch-list {
+  margin: 10px 0 4px 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.stretch-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 1px 8px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.stretch-name {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--text);
+  grid-column: 1;
+  grid-row: 1;
+}
+.stretch-time {
+  font-size: 0.78rem;
+  color: var(--accent);
+  font-weight: 500;
+  grid-column: 2;
+  grid-row: 1;
+  white-space: nowrap;
+  text-align: right;
+}
+.stretch-focus {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
 /* ── Heatmap ── */

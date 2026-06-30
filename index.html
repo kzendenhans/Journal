@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon2.png">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=144">
+  <link rel="stylesheet" href="style.css?v=145">
 </head>
 <body>
 <div id="app">
@@ -72,6 +72,26 @@
           <button class="habit-btn essential" data-key="geklust"><span class="habit-check"></span>Geklust</button>
           <button class="habit-btn essential" data-key="geschreven"><span class="habit-check"></span>Geschreven</button>
         </div>
+      </div>
+
+      <!-- Stretch routine -->
+      <div class="habit-section">
+        <h2>Stretch routine</h2>
+        <div class="habit-grid">
+          <button class="habit-btn essential" data-key="stretch_routine"><span class="habit-check"></span>Gedaan</button>
+        </div>
+        <details class="stretch-details">
+          <summary>Bekijk oefeningen <span class="stretch-duration">~12 min</span><span class="stretch-chevron">›</span></summary>
+          <ol class="stretch-list">
+            <li><span class="stretch-name">Cat-cow</span><span class="stretch-time">1 min</span><span class="stretch-focus">lage rug mobiliteit</span></li>
+            <li><span class="stretch-name">Child's pose</span><span class="stretch-time">1 min</span><span class="stretch-focus">lage rug, heupen</span></li>
+            <li><span class="stretch-name">Couch stretch</span><span class="stretch-time">90 sec/kant</span><span class="stretch-focus">heupbuigers, quad</span></li>
+            <li><span class="stretch-name">Low lunge + rotatie</span><span class="stretch-time">60 sec/kant</span><span class="stretch-focus">heupbuigers, thorax</span></li>
+            <li><span class="stretch-name">Pigeon pose</span><span class="stretch-time">90 sec/kant</span><span class="stretch-focus">heup, piriformis</span></li>
+            <li><span class="stretch-name">Deurpost stretch</span><span class="stretch-time">45 sec/kant</span><span class="stretch-focus">borstspieren, schouder</span></li>
+            <li><span class="stretch-name">Dead bug</span><span class="stretch-time">10 herh.</span><span class="stretch-focus">lower abs activatie</span></li>
+          </ol>
+        </details>
       </div>
 
       <!-- Bonussen -->
@@ -280,7 +300,7 @@
       <div class="settings-section">
         <h2>Over</h2>
         <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.6">
-          Dagboek v1.43<br>
+          Dagboek v1.45<br>
           Data wordt opgeslagen in Supabase.
         </p>
       </div>
@@ -311,6 +331,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="app.js?v=144"></script>
+<script src="app.js?v=145"></script>
 </body>
 </html>

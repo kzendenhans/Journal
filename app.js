@@ -530,7 +530,7 @@ function renderInsights(rows, allRows, from, to, period) {
     return;
   }
 
-  const essentials = ['gym','gewerkt','geklust','geschreven'];
+  const essentials = ['gym','gewerkt','geklust','geschreven','stretch_routine'];
   const bonuses    = ['geleest','gemediteerd','tijd_met_anderen','gespeeld'];
   const bad        = ['te_veel_weinig_eten','gedoomscrolled','gemasturbeerd','porno_gekeken'];
   const labels = {
