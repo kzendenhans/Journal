@@ -268,7 +268,7 @@ async function loadCheckinForDate(dateStr) {
       loadWeightAvg14(dateStr).then(avg => { state.weightAvg14 = avg; }),
     ]);
     if (row) {
-      const boolKeys = ['gym','gewerkt','geklust','geschreven','geleest','gemediteerd',
+      const boolKeys = ['gym','gewerkt','geklust','geschreven','stretch_routine','geleest','gemediteerd',
         'tijd_met_anderen','gespeeld','te_veel_weinig_eten','gedoomscrolled',
         'gemasturbeerd','porno_gekeken'];
       boolKeys.forEach(k => { if (row[k]) state.entry[k] = true; });
@@ -1245,7 +1245,7 @@ function initSwipe() {
     underEl.innerHTML = clone.innerHTML;
     document.body.appendChild(underEl);
 
-    const boolKeys = ['gym','gewerkt','geklust','geschreven','geleest','gemediteerd',
+    const boolKeys = ['gym','gewerkt','geklust','geschreven','stretch_routine','geleest','gemediteerd',
       'tijd_met_anderen','gespeeld','te_veel_weinig_eten','gedoomscrolled',
       'gemasturbeerd','porno_gekeken'];
 
