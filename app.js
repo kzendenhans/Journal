@@ -367,6 +367,7 @@ async function saveCheckin(silent = false) {
     gewerkt: !!state.entry.gewerkt,
     geklust: !!state.entry.geklust,
     geschreven: !!state.entry.geschreven,
+    stretch_routine: !!state.entry.stretch_routine,
     geleest: !!state.entry.geleest,
     gemediteerd: !!state.entry.gemediteerd,
     tijd_met_anderen: !!state.entry.tijd_met_anderen,
