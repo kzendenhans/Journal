@@ -593,6 +593,38 @@ textarea::placeholder { color: var(--text-muted); }
   white-space: nowrap;
 }
 
+/* ── XP / level ── */
+.xp-level-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.xp-level-label {
+  font-size: 0.82rem;
+  color: var(--text-sub);
+}
+
+.xp-level-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.xp-level-track {
+  height: 6px;
+  background: var(--bg-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.xp-level-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
 /* ── Mood distribution ── */
 .mood-dist {
   display: flex;

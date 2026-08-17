@@ -285,6 +285,7 @@ async function loadCheckinForDate(dateStr) {
   }
 
   renderCheckin();
+  loadXPLevel();
   if (dateStr === todayStr()) loadWeekSummary();
   else { const ws = document.getElementById('week-summary'); if (ws) ws.innerHTML = ''; }
 
@@ -326,7 +327,7 @@ async function loadWeekSummary() {
     if (!rows.length) { el.innerHTML = ''; return; }
 
     const goals = [
-      { key: 'gym',            label: 'Gym',      goal: 5 },
+      { key: 'gym',            label: 'Gym',      goal: 3 },
       { key: 'gewerkt',        label: 'Gewerkt',  goal: 5 },
       { key: 'geklust',        label: 'Geklust',  goal: 7 },
       { key: 'geschreven',     label: 'Schrijven',goal: 7 },
@@ -347,6 +348,39 @@ async function loadWeekSummary() {
       <div class="week-summary-goals">${goalsHtml}</div>
     </div>`;
   } catch(e) {
+    el.innerHTML = '';
+  }
+}
+
+const XP_ESSENTIALS = ['gym','gewerkt','geklust','geschreven','stretch_routine'];
+const XP_BONUSES    = ['geleest','gemediteerd','tijd_met_anderen','gespeeld'];
+const XP_PER_LEVEL  = 500;
+
+async function loadXPLevel() {
+  const el = document.getElementById('xp-level');
+  if (!el) return;
+  if (!cfg.sbUrl || !cfg.sbKey) { el.innerHTML = ''; return; }
+
+  try {
+    const rows = await sbFetch(`/habit_entries?select=${[...XP_ESSENTIALS, ...XP_BONUSES].join(',')}`);
+    let xp = 0;
+    (rows || []).forEach(r => {
+      XP_ESSENTIALS.forEach(k => { if (r[k]) xp += 10; });
+      XP_BONUSES.forEach(k => { if (r[k]) xp += 5; });
+    });
+
+    const level     = Math.floor(xp / XP_PER_LEVEL) + 1;
+    const xpInLevel = xp % XP_PER_LEVEL;
+    const pct       = Math.round(xpInLevel / XP_PER_LEVEL * 100);
+
+    el.innerHTML = `
+      <div class="xp-level-row">
+        <span class="xp-level-label">Niveau ${level}</span>
+        <span class="xp-level-count">${xpInLevel}/${XP_PER_LEVEL} XP</span>
+      </div>
+      <div class="xp-level-track"><div class="xp-level-fill" style="width:${pct}%"></div></div>
+    `;
+  } catch (e) {
     el.innerHTML = '';
   }
 }
@@ -392,6 +426,7 @@ async function saveCheckin(silent = false) {
     await upsertEntry(data);
     invalidateEntry(state.date);
     state.dirtyCheckin = false;
+    loadXPLevel();
     if (!silent) showToast('✓ Opgeslagen');
   } catch (e) {
     if (!silent) showToast('⚠ Opslaan mislukt');
@@ -561,7 +596,7 @@ function renderInsights(rows, allRows, from, to, period) {
     period === '6months' ? 182 :
     periodDays;
 
-  const WEEKLY_RATES = { gym: 5/7, gewerkt: 5/7, geklust: 1, geschreven: 1, stretch_routine: 1 };
+  const WEEKLY_RATES = { gym: 3/7, gewerkt: 5/7, geklust: 1, geschreven: 1, stretch_routine: 1 };
   const periodGoal = k => Math.round(WEEKLY_RATES[k] * goalBaseDays) || 1;
 
   const progressTitle =
