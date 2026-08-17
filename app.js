@@ -326,10 +326,11 @@ async function loadWeekSummary() {
     if (!rows.length) { el.innerHTML = ''; return; }
 
     const goals = [
-      { key: 'gym',        label: 'Gym',      goal: 5 },
-      { key: 'gewerkt',    label: 'Gewerkt',  goal: 5 },
-      { key: 'geklust',    label: 'Geklust',  goal: 7 },
-      { key: 'geschreven', label: 'Schrijven',goal: 7 },
+      { key: 'gym',            label: 'Gym',      goal: 5 },
+      { key: 'gewerkt',        label: 'Gewerkt',  goal: 5 },
+      { key: 'geklust',        label: 'Geklust',  goal: 7 },
+      { key: 'geschreven',     label: 'Schrijven',goal: 7 },
+      { key: 'stretch_routine',label: 'Stretch',  goal: 7 },
     ];
 
     const goalsHtml = goals.map(g => {
@@ -535,7 +536,7 @@ function renderInsights(rows, allRows, from, to, period) {
   const bonuses    = ['geleest','gemediteerd','tijd_met_anderen','gespeeld'];
   const bad        = ['te_veel_weinig_eten','gedoomscrolled','gemasturbeerd','porno_gekeken'];
   const labels = {
-    gym:'Gym', gewerkt:'Gewerkt', geklust:'Geklust', geschreven:'Geschreven',
+    gym:'Gym', gewerkt:'Gewerkt', geklust:'Geklust', geschreven:'Geschreven', stretch_routine:'Stretch',
     geleest:'Gelezen', gemediteerd:'Gemediteerd', tijd_met_anderen:'Sociaal', gespeeld:'Gespeeld',
     te_veel_weinig_eten:'Te veel/weinig', gedoomscrolled:'Doomscroll', gemasturbeerd:'Masturb.', porno_gekeken:'Porno'
   };
@@ -560,7 +561,7 @@ function renderInsights(rows, allRows, from, to, period) {
     period === '6months' ? 182 :
     periodDays;
 
-  const WEEKLY_RATES = { gym: 5/7, gewerkt: 5/7, geklust: 1, geschreven: 1 };
+  const WEEKLY_RATES = { gym: 5/7, gewerkt: 5/7, geklust: 1, geschreven: 1, stretch_routine: 1 };
   const periodGoal = k => Math.round(WEEKLY_RATES[k] * goalBaseDays) || 1;
 
   const progressTitle =
@@ -854,7 +855,7 @@ Schrijf een reflectie van 3 korte alinea's (max. 250 woorden totaal):
         'authorization': `Bearer ${cfg.geminiKey}`,
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         max_tokens: 800,
         messages: [{ role: 'user', content: prompt }],
       }),
@@ -912,7 +913,7 @@ async function testGroqKey() {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'authorization': `Bearer ${cfg.geminiKey}` },
-      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 10, messages: [{ role: 'user', content: 'Zeg: OK' }] }),
+      body: JSON.stringify({ model: 'openai/gpt-oss-120b', max_tokens: 10, messages: [{ role: 'user', content: 'Zeg: OK' }] }),
     });
     if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
     statusEl.innerHTML = `<span class="status-dot ok"></span> Verbinding OK`;
