@@ -271,8 +271,7 @@ async function loadCheckinForDate(dateStr) {
     ]);
     if (row) {
       const boolKeys = ['gym','gewerkt','geklust','geschreven','stretch_routine','geleest','gemediteerd',
-        'tijd_met_anderen','gespeeld','te_veel_weinig_eten','gedoomscrolled',
-        'gemasturbeerd','porno_gekeken','opleiding_gevolgd','onbekende_aangesproken',
+        'tijd_met_anderen','gespeeld','opleiding_gevolgd','onbekende_aangesproken',
         'koude_douche','comfort_zone_uitdaging','iemand_geholpen','geflirt'];
       boolKeys.forEach(k => { if (row[k]) state.entry[k] = true; });
       state.sleep = row.slaap !== null ? +row.slaap : 8.0;
@@ -356,17 +355,17 @@ async function loadWeekSummary() {
 
 // ── Persona-stats ster (dagelijks, niet-cumulatief) ───────────────────────────
 const STAT_DEFS = [
-  { key: 'knowledge',   label: 'Knowledge',   pos: ['geleest','geschreven','opleiding_gevolgd'], neg: ['gedoomscrolled'] },
-  { key: 'charm',       label: 'Charm',       pos: ['tijd_met_anderen','onbekende_aangesproken','geflirt'], neg: ['porno_gekeken','gemasturbeerd'] },
-  { key: 'guts',        label: 'Guts',        pos: ['koude_douche','comfort_zone_uitdaging','gym'], neg: [] },
-  { key: 'kindness',    label: 'Kindness',    pos: ['gemediteerd','iemand_geholpen','stretch_routine'], neg: [] },
-  { key: 'proficiency', label: 'Proficiency', pos: ['gewerkt','geklust','gespeeld'], neg: ['te_veel_weinig_eten'] },
+  { key: 'knowledge',   label: 'Knowledge',   pos: ['geleest','geschreven','opleiding_gevolgd'] },
+  { key: 'charm',       label: 'Charm',       pos: ['tijd_met_anderen','onbekende_aangesproken','geflirt'] },
+  { key: 'guts',        label: 'Guts',        pos: ['koude_douche','comfort_zone_uitdaging','gym'] },
+  { key: 'kindness',    label: 'Kindness',    pos: ['gemediteerd','iemand_geholpen','stretch_routine'] },
+  { key: 'proficiency', label: 'Proficiency', pos: ['gewerkt','geklust','gespeeld'] },
 ];
 
 function statDetail(entry) {
   return STAT_DEFS.map(s => {
     const max = s.pos.length || 1;
-    const score = Math.max(0, Math.min(max, s.pos.filter(k => entry[k]).length - s.neg.filter(k => entry[k]).length));
+    const score = s.pos.filter(k => entry[k]).length;
     return { key: s.key, label: s.label, score, max, frac: score / max };
   });
 }
@@ -509,10 +508,6 @@ async function saveCheckin(silent = false) {
     gemediteerd: !!state.entry.gemediteerd,
     tijd_met_anderen: !!state.entry.tijd_met_anderen,
     gespeeld: !!state.entry.gespeeld,
-    te_veel_weinig_eten: !!state.entry.te_veel_weinig_eten,
-    gedoomscrolled: !!state.entry.gedoomscrolled,
-    gemasturbeerd: !!state.entry.gemasturbeerd,
-    porno_gekeken: !!state.entry.porno_gekeken,
     opleiding_gevolgd: !!state.entry.opleiding_gevolgd,
     onbekende_aangesproken: !!state.entry.onbekende_aangesproken,
     koude_douche: !!state.entry.koude_douche,
@@ -676,15 +671,13 @@ function renderInsights(rows, allRows, from, to, period) {
 
   const essentials = ['gym','gewerkt','geklust','geschreven','stretch_routine'];
   const bonuses    = ['geleest','gemediteerd','tijd_met_anderen','gespeeld'];
-  const bad        = ['te_veel_weinig_eten','gedoomscrolled','gemasturbeerd','porno_gekeken'];
   const labels = {
     gym:'Gym', gewerkt:'Gewerkt', geklust:'Geklust', geschreven:'Geschreven', stretch_routine:'Stretch',
     geleest:'Gelezen', gemediteerd:'Gemediteerd', tijd_met_anderen:'Sociaal', gespeeld:'Gespeeld',
-    te_veel_weinig_eten:'Te veel/weinig', gedoomscrolled:'Doomscroll', gemasturbeerd:'Masturb.', porno_gekeken:'Porno'
   };
 
   // Skip today if empty (for both sets)
-  const boolKeys = [...essentials, ...bonuses, ...bad];
+  const boolKeys = [...essentials, ...bonuses];
   const todayEmpty = r => boolKeys.every(k => !r[k]) && !r.slaap && !r.gewicht && !r.mood_emoji;
   const dataRows    = rows[0]    && rows[0].date    === todayStr() && todayEmpty(rows[0])    ? rows.slice(1)    : rows;
   const streakRows  = allRows[0] && allRows[0].date === todayStr() && todayEmpty(allRows[0]) ? allRows.slice(1) : allRows;
@@ -758,7 +751,6 @@ function renderInsights(rows, allRows, from, to, period) {
   }
 
   const bonusBars = bonuses.map(k => barHtml(k, 'bonus')).join('');
-  const badBars   = bad.map(k    => barHtml(k, 'bad')).join('');
 
   // ── Gemiddelden + grafiekdata ──
   const sortedRows   = [...dataRows].sort((a, b) => a.date < b.date ? -1 : 1);
@@ -814,11 +806,6 @@ function renderInsights(rows, allRows, from, to, period) {
     <div class="insight-card">
       <h3>Bonussen — ${periodLabel}</h3>
       ${bonusBars}
-    </div>
-
-    <div class="insight-card">
-      <h3>Aandachtspunten — ${periodLabel}</h3>
-      ${badBars}
     </div>
 
     <div class="insight-card">
@@ -960,7 +947,7 @@ async function generateInsightNarrative() {
       const label = `${dy}-${mo} (${dayNames[dt.getDay()]})`;
       const r = (rows || []).find(x => x.date === d) || {};
       habitLines.push(
-        `${label}: gym:${bool(r.gym)} gew:${bool(r.gewerkt)} schr:${bool(r.geschreven)} gel:${bool(r.geleest)} med:${bool(r.gemediteerd)} soc:${bool(r.tijd_met_anderen)} kl:${bool(r.geklust)} sp:${bool(r.gespeeld)} eten:${bool(r.te_veel_weinig_eten)} doom:${bool(r.gedoomscrolled)} | slaap:${r.slaap != null ? r.slaap + 'u' : '?'} gewicht:${r.gewicht != null ? r.gewicht + 'kg' : '?'} stemming:${r.mood_emoji || '?'}`
+        `${label}: gym:${bool(r.gym)} gew:${bool(r.gewerkt)} schr:${bool(r.geschreven)} gel:${bool(r.geleest)} med:${bool(r.gemediteerd)} soc:${bool(r.tijd_met_anderen)} kl:${bool(r.geklust)} sp:${bool(r.gespeeld)} | slaap:${r.slaap != null ? r.slaap + 'u' : '?'} gewicht:${r.gewicht != null ? r.gewicht + 'kg' : '?'} stemming:${r.mood_emoji || '?'}`
       );
     }
 
@@ -1193,9 +1180,8 @@ function initListeners() {
     btn.addEventListener('click', () => {
       const key = btn.dataset.key;
       state.entry[key] = !state.entry[key];
-      const isGood = !btn.classList.contains('bad');
       btn.classList.toggle('active', !!state.entry[key]);
-      if (state.entry[key] && isGood) {
+      if (state.entry[key]) {
         haptic(18);
         btn.classList.remove('pop');
         void btn.offsetWidth; // force reflow to restart animation
@@ -1391,8 +1377,7 @@ function initSwipe() {
     document.body.appendChild(underEl);
 
     const boolKeys = ['gym','gewerkt','geklust','geschreven','stretch_routine','geleest','gemediteerd',
-      'tijd_met_anderen','gespeeld','te_veel_weinig_eten','gedoomscrolled',
-      'gemasturbeerd','porno_gekeken','opleiding_gevolgd','onbekende_aangesproken',
+      'tijd_met_anderen','gespeeld','opleiding_gevolgd','onbekende_aangesproken',
       'koude_douche','comfort_zone_uitdaging','iemand_geholpen','geflirt'];
 
     // Apply real data to under-card as soon as it's available (cache = likely instant)

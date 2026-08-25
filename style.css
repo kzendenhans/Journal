@@ -264,8 +264,7 @@ main {
 }
 
 .habit-btn.active,
-.habit-btn.essential.active,
-.habit-btn.bad.active {
+.habit-btn.essential.active {
   background: var(--accent-bg);
   color: var(--accent);
 }
@@ -284,8 +283,7 @@ main {
 }
 
 .habit-btn.active .habit-check,
-.habit-btn.essential.active .habit-check,
-.habit-btn.bad.active .habit-check {
+.habit-btn.essential.active .habit-check {
   border-color: var(--accent);
   background: var(--accent);
   color: white;
@@ -572,7 +570,6 @@ textarea::placeholder { color: var(--text-muted); }
 
 .habit-bar-fill.essential { background: var(--success); }
 .habit-bar-fill.bonus { background: var(--bonus); }
-.habit-bar-fill.bad { background: var(--danger); }
 
 .habit-bar-pct {
   font-size: 0.75rem;
