@@ -602,8 +602,8 @@ textarea::placeholder { color: var(--text-muted); }
   filter: drop-shadow(0 0 8px rgba(246,199,0,0.18));
 }
 
-.star-grid { fill: none; stroke: rgba(255,255,255,0.09); stroke-width: 1; }
-.star-axis { stroke: rgba(255,255,255,0.14); stroke-width: 1; }
+.star-grid { fill: none; stroke: var(--text-muted); stroke-width: 1; opacity: 0.35; }
+.star-axis { stroke: var(--text-muted); stroke-width: 1; opacity: 0.45; }
 
 .star-facet {
   stroke: rgba(80,48,0,0.5);

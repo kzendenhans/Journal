@@ -462,15 +462,7 @@ function renderStarChart() {
   const outlinePts = toPoly(baseR.map(project));
   const dataShape = `${facets.join('')}<polygon points="${outlinePts}" class="star-outline" />`;
 
-  // Zachte contactschaduw onder de ster (lichtbron linksboven, dus schaduw rechtsonder)
-  // — geeft het gevoel dat de ster boven het grid "zweeft".
-  const shadowDefs = `<defs><radialGradient id="starShadow" cx="50%" cy="50%" r="50%">
-    <stop offset="0%" stop-color="rgba(0,0,0,0.5)" />
-    <stop offset="100%" stop-color="rgba(0,0,0,0)" />
-  </radialGradient></defs>`;
-  const shadow = `<ellipse cx="${cx + 7}" cy="${cy + 11}" rx="${R * 0.66}" ry="${R * 0.4}" fill="url(#starShadow)" />`;
-
-  const svg = `<svg viewBox="0 0 200 200" class="star-chart-svg">${shadowDefs}${gridPolys}${axisLines}${shadow}${dataShape}</svg>`;
+  const svg = `<svg viewBox="0 0 200 200" class="star-chart-svg">${gridPolys}${axisLines}${dataShape}</svg>`;
 
   const chips = stats.map((s, i) => {
     const a = chipAngleFor(i);
