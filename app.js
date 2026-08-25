@@ -409,7 +409,7 @@ function renderStarChart() {
     }
     return pts;
   };
-  const gridPolys = [0.35, 0.6, 0.82, 1].map(level =>
+  const gridPolys = [1 / 3, 2 / 3, 1].map(level =>
     `<polygon points="${toPoly(gridRing3D(level).map(project))}" class="star-grid" />`
   ).join('');
 
