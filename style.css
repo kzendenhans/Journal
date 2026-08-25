@@ -585,53 +585,13 @@ textarea::placeholder { color: var(--text-muted); }
 
 /* ── Persona-stats ster ── */
 .star-chart-card {
-  background:
-    repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0 2px, transparent 2px 14px),
-    #0a0a0a;
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 22px 100%, 0 calc(100% - 22px));
-  padding: 46px 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 16px;
   margin-bottom: 22px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 0 0 1px #1a1a1a, 0 10px 28px rgba(0,0,0,0.4);
-}
-
-.star-chart-card::before {
-  /* diagonale rode balk, linksboven — enige rode accent, zoals de rode inkleuring in de referentie */
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(100deg, rgba(230,0,39,0.35), transparent 60%);
-  z-index: 0;
-}
-
-.star-chart-card::after {
-  /* gele hoek-accent linksonder, volgt de clip-path-inkeping */
-  content: '';
-  position: absolute;
-  left: 0; bottom: 0;
-  width: 0; height: 0;
-  border-style: solid;
-  border-width: 0 0 26px 26px;
-  border-color: transparent transparent #f6c700 transparent;
-}
-
-.star-chart-title {
-  position: absolute;
-  top: 10px; right: 10px;
-  z-index: 3;
-  background: #fff;
-  color: #111;
-  clip-path: polygon(4% 0, 100% 6%, 96% 88%, 92% 100%, 6% 96%, 0 18%);
-  padding: 5px 14px 6px 10px;
-  font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
-  font-size: 0.78rem;
-  font-weight: 900;
-  font-style: italic;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .star-chart-inner { position: relative; z-index: 2; }
@@ -667,19 +627,19 @@ textarea::placeholder { color: var(--text-muted); }
   position: absolute;
   z-index: 3;
   text-align: center;
-  width: 76px;
+  width: 92px;
 }
 
 .star-chip-tag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   background: #f6c700;
   color: #111;
   clip-path: polygon(6% 0, 100% 10%, 94% 100%, 0 90%);
-  padding: 3px 9px 4px 7px;
+  padding: 5px 12px 6px 9px;
   font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
-  font-size: 0.74rem;
+  font-size: 0.88rem;
   font-weight: 900;
   font-style: italic;
   letter-spacing: 0.01em;
@@ -691,9 +651,9 @@ textarea::placeholder { color: var(--text-muted); }
   background: #111;
   color: #f6c700;
   border-radius: 50%;
-  width: 13px; height: 13px;
+  width: 17px; height: 17px;
   font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   font-weight: 800;
   font-style: normal;
   display: inline-flex;
@@ -704,10 +664,10 @@ textarea::placeholder { color: var(--text-muted); }
 
 .star-chip-frac {
   font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: #cfcac2;
-  margin-top: 3px;
+  color: var(--text-muted);
+  margin-top: 4px;
 }
 
 .star-chip-max {
@@ -715,7 +675,7 @@ textarea::placeholder { color: var(--text-muted); }
   font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
   font-weight: 900;
   font-style: normal;
-  font-size: 0.72rem;
+  font-size: 0.84rem;
   letter-spacing: 0.03em;
   text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
