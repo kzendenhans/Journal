@@ -212,6 +212,15 @@ main {
   margin-bottom: 12px;
 }
 
+.habit-section h2.persona-heading {
+  font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
+  font-size: 0.76rem;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+
 /* ── Habit Buttons ── */
 .habit-grid {
   display: grid;
