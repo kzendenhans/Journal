@@ -234,6 +234,7 @@ main {
 
 .habit-grid > .habit-btn:nth-child(3):last-child {
   grid-column: 1 / -1;
+  justify-content: center;
 }
 
 .habit-btn {
