@@ -234,6 +234,8 @@ function renderCheckin() {
 
   // Notes
   document.getElementById('notes-input').value = state.notes;
+
+  renderStarChart();
 }
 
 async function loadCheckinForDate(dateStr) {
@@ -270,7 +272,8 @@ async function loadCheckinForDate(dateStr) {
     if (row) {
       const boolKeys = ['gym','gewerkt','geklust','geschreven','stretch_routine','geleest','gemediteerd',
         'tijd_met_anderen','gespeeld','te_veel_weinig_eten','gedoomscrolled',
-        'gemasturbeerd','porno_gekeken'];
+        'gemasturbeerd','porno_gekeken','opleiding_gevolgd','onbekende_aangesproken',
+        'koude_douche','comfort_zone_uitdaging','iemand_geholpen'];
       boolKeys.forEach(k => { if (row[k]) state.entry[k] = true; });
       state.sleep = row.slaap !== null ? +row.slaap : 8.0;
       state.weight = row.gewicht !== null ? +row.gewicht : null;
@@ -285,7 +288,6 @@ async function loadCheckinForDate(dateStr) {
   }
 
   renderCheckin();
-  loadXPLevel();
   if (dateStr === todayStr()) loadWeekSummary();
   else { const ws = document.getElementById('week-summary'); if (ws) ws.innerHTML = ''; }
 
@@ -352,37 +354,54 @@ async function loadWeekSummary() {
   }
 }
 
-const XP_ESSENTIALS = ['gym','gewerkt','geklust','geschreven','stretch_routine'];
-const XP_BONUSES    = ['geleest','gemediteerd','tijd_met_anderen','gespeeld'];
-const XP_PER_LEVEL  = 500;
+// ── Persona-stats ster (dagelijks, niet-cumulatief) ───────────────────────────
+const STAT_DEFS = [
+  { key: 'knowledge',   label: 'Knowledge',   pos: ['geleest','geschreven','opleiding_gevolgd'], neg: ['gedoomscrolled'] },
+  { key: 'charm',       label: 'Charm',       pos: ['tijd_met_anderen','onbekende_aangesproken'], neg: ['porno_gekeken','gemasturbeerd'] },
+  { key: 'guts',        label: 'Guts',        pos: ['koude_douche','comfort_zone_uitdaging'], neg: [] },
+  { key: 'kindness',    label: 'Kindness',    pos: ['gemediteerd','iemand_geholpen'], neg: [] },
+  { key: 'proficiency', label: 'Proficiency', pos: ['gym','gewerkt','geklust','stretch_routine','gespeeld'], neg: ['te_veel_weinig_eten'] },
+];
 
-async function loadXPLevel() {
-  const el = document.getElementById('xp-level');
+function statFractions(entry) {
+  return STAT_DEFS.map(s => {
+    const max = s.pos.length || 1;
+    const score = Math.max(0, Math.min(max, s.pos.filter(k => entry[k]).length - s.neg.filter(k => entry[k]).length));
+    return score / max;
+  });
+}
+
+function renderStarChart() {
+  const el = document.getElementById('star-chart');
   if (!el) return;
-  if (!cfg.sbUrl || !cfg.sbKey) { el.innerHTML = ''; return; }
 
-  try {
-    const rows = await sbFetch(`/habit_entries?select=${[...XP_ESSENTIALS, ...XP_BONUSES].join(',')}`);
-    let xp = 0;
-    (rows || []).forEach(r => {
-      XP_ESSENTIALS.forEach(k => { if (r[k]) xp += 10; });
-      XP_BONUSES.forEach(k => { if (r[k]) xp += 5; });
-    });
+  const fractions = statFractions(state.entry);
+  const cx = 100, cy = 100, R = 62;
+  const angleFor = i => (-90 + i * 72) * Math.PI / 180;
+  const pt = (i, v) => {
+    const a = angleFor(i);
+    return [+(cx + R * v * Math.cos(a)).toFixed(1), +(cy + R * v * Math.sin(a)).toFixed(1)];
+  };
+  const toPoly = pts => pts.map(p => p.join(',')).join(' ');
 
-    const level     = Math.floor(xp / XP_PER_LEVEL) + 1;
-    const xpInLevel = xp % XP_PER_LEVEL;
-    const pct       = Math.round(xpInLevel / XP_PER_LEVEL * 100);
+  const gridPolys = [0.25, 0.5, 0.75, 1].map(level =>
+    `<polygon points="${toPoly(STAT_DEFS.map((_, i) => pt(i, level)))}" class="star-grid" />`
+  ).join('');
 
-    el.innerHTML = `
-      <div class="xp-level-row">
-        <span class="xp-level-label">Niveau ${level}</span>
-        <span class="xp-level-count">${xpInLevel}/${XP_PER_LEVEL} XP</span>
-      </div>
-      <div class="xp-level-track"><div class="xp-level-fill" style="width:${pct}%"></div></div>
-    `;
-  } catch (e) {
-    el.innerHTML = '';
-  }
+  const axisLines = STAT_DEFS.map((_, i) => {
+    const [x, y] = pt(i, 1);
+    return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" class="star-axis" />`;
+  }).join('');
+
+  const dataPts = fractions.map((v, i) => pt(i, v));
+  const dataPoly = `<polygon points="${toPoly(dataPts)}" class="star-fill" /><polygon points="${toPoly(dataPts)}" class="star-outline" />`;
+
+  const labels = STAT_DEFS.map((s, i) => {
+    const [x, y] = pt(i, 1.38);
+    return `<text x="${x}" y="${y}" class="star-label" text-anchor="middle" dominant-baseline="middle">${s.label}</text>`;
+  }).join('');
+
+  el.innerHTML = `<svg viewBox="0 0 200 200" class="star-chart-svg">${gridPolys}${axisLines}${dataPoly}${labels}</svg>`;
 }
 
 async function saveCheckin(silent = false) {
@@ -411,6 +430,11 @@ async function saveCheckin(silent = false) {
     gedoomscrolled: !!state.entry.gedoomscrolled,
     gemasturbeerd: !!state.entry.gemasturbeerd,
     porno_gekeken: !!state.entry.porno_gekeken,
+    opleiding_gevolgd: !!state.entry.opleiding_gevolgd,
+    onbekende_aangesproken: !!state.entry.onbekende_aangesproken,
+    koude_douche: !!state.entry.koude_douche,
+    comfort_zone_uitdaging: !!state.entry.comfort_zone_uitdaging,
+    iemand_geholpen: !!state.entry.iemand_geholpen,
     slaap: state.sleep,
     gewicht: state.weight,
     mood_emoji: state.mood,
@@ -426,7 +450,6 @@ async function saveCheckin(silent = false) {
     await upsertEntry(data);
     invalidateEntry(state.date);
     state.dirtyCheckin = false;
-    loadXPLevel();
     if (!silent) showToast('✓ Opgeslagen');
   } catch (e) {
     if (!silent) showToast('⚠ Opslaan mislukt');
@@ -1097,6 +1120,7 @@ function initListeners() {
       } else {
         haptic(8);
       }
+      renderStarChart();
       scheduleAutoSave();
     });
   });
@@ -1284,7 +1308,8 @@ function initSwipe() {
 
     const boolKeys = ['gym','gewerkt','geklust','geschreven','stretch_routine','geleest','gemediteerd',
       'tijd_met_anderen','gespeeld','te_veel_weinig_eten','gedoomscrolled',
-      'gemasturbeerd','porno_gekeken'];
+      'gemasturbeerd','porno_gekeken','opleiding_gevolgd','onbekende_aangesproken',
+      'koude_douche','comfort_zone_uitdaging','iemand_geholpen'];
 
     // Apply real data to under-card as soon as it's available (cache = likely instant)
     loadEntry(targetDate).then(row => {

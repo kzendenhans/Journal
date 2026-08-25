@@ -605,36 +605,48 @@ textarea::placeholder { color: var(--text-muted); }
   white-space: nowrap;
 }
 
-/* ── XP / level ── */
-.xp-level-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 4px;
-}
-
-.xp-level-label {
-  font-size: 0.82rem;
-  color: var(--text-sub);
-}
-
-.xp-level-count {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.xp-level-track {
-  height: 6px;
-  background: var(--bg-2);
-  border-radius: 3px;
+/* ── Persona-stats ster ── */
+.star-chart-card {
+  background: #0c0c0e;
+  border-radius: 14px;
+  padding: 14px 8px 6px;
+  margin-bottom: 20px;
+  position: relative;
   overflow: hidden;
 }
 
-.xp-level-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: var(--accent);
-  transition: width 0.4s ease;
+.star-chart-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, #e60027, #ff3b52 45%, #e60027 100%);
+}
+
+.star-chart-svg { display: block; width: 100%; max-width: 260px; margin: 0 auto; }
+
+.star-grid { fill: none; stroke: rgba(255,255,255,0.12); stroke-width: 1; }
+.star-axis { stroke: rgba(255,255,255,0.16); stroke-width: 1; }
+
+.star-fill {
+  fill: #e60027;
+  fill-opacity: 0.32;
+  stroke: none;
+}
+
+.star-outline {
+  fill: none;
+  stroke: #ff3b52;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  transition: all 0.3s ease;
+}
+
+.star-label {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  fill: #f0ede8;
+  text-transform: uppercase;
 }
 
 /* ── Mood distribution ── */
