@@ -273,7 +273,7 @@ async function loadCheckinForDate(dateStr) {
       const boolKeys = ['gym','gewerkt','geklust','geschreven','stretch_routine','geleest','gemediteerd',
         'tijd_met_anderen','gespeeld','te_veel_weinig_eten','gedoomscrolled',
         'gemasturbeerd','porno_gekeken','opleiding_gevolgd','onbekende_aangesproken',
-        'koude_douche','comfort_zone_uitdaging','iemand_geholpen'];
+        'koude_douche','comfort_zone_uitdaging','iemand_geholpen','geflirt'];
       boolKeys.forEach(k => { if (row[k]) state.entry[k] = true; });
       state.sleep = row.slaap !== null ? +row.slaap : 8.0;
       state.weight = row.gewicht !== null ? +row.gewicht : null;
@@ -357,17 +357,17 @@ async function loadWeekSummary() {
 // ── Persona-stats ster (dagelijks, niet-cumulatief) ───────────────────────────
 const STAT_DEFS = [
   { key: 'knowledge',   label: 'Knowledge',   pos: ['geleest','geschreven','opleiding_gevolgd'], neg: ['gedoomscrolled'] },
-  { key: 'charm',       label: 'Charm',       pos: ['tijd_met_anderen','onbekende_aangesproken'], neg: ['porno_gekeken','gemasturbeerd'] },
-  { key: 'guts',        label: 'Guts',        pos: ['koude_douche','comfort_zone_uitdaging'], neg: [] },
-  { key: 'kindness',    label: 'Kindness',    pos: ['gemediteerd','iemand_geholpen'], neg: [] },
-  { key: 'proficiency', label: 'Proficiency', pos: ['gym','gewerkt','geklust','stretch_routine','gespeeld'], neg: ['te_veel_weinig_eten'] },
+  { key: 'charm',       label: 'Charm',       pos: ['tijd_met_anderen','onbekende_aangesproken','geflirt'], neg: ['porno_gekeken','gemasturbeerd'] },
+  { key: 'guts',        label: 'Guts',        pos: ['koude_douche','comfort_zone_uitdaging','gym'], neg: [] },
+  { key: 'kindness',    label: 'Kindness',    pos: ['gemediteerd','iemand_geholpen','stretch_routine'], neg: [] },
+  { key: 'proficiency', label: 'Proficiency', pos: ['gewerkt','geklust','gespeeld'], neg: ['te_veel_weinig_eten'] },
 ];
 
-function statFractions(entry) {
+function statDetail(entry) {
   return STAT_DEFS.map(s => {
     const max = s.pos.length || 1;
     const score = Math.max(0, Math.min(max, s.pos.filter(k => entry[k]).length - s.neg.filter(k => entry[k]).length));
-    return score / max;
+    return { key: s.key, label: s.label, score, max, frac: score / max };
   });
 }
 
@@ -375,33 +375,116 @@ function renderStarChart() {
   const el = document.getElementById('star-chart');
   if (!el) return;
 
-  const fractions = statFractions(state.entry);
-  const cx = 100, cy = 100, R = 62;
-  const angleFor = i => (-90 + i * 72) * Math.PI / 180;
-  const pt = (i, v) => {
-    const a = angleFor(i);
-    return [+(cx + R * v * Math.cos(a)).toFixed(1), +(cy + R * v * Math.sin(a)).toFixed(1)];
-  };
+  const stats = statDetail(state.entry);
+  const cx = 100, cy = 100, R = 58;
+  const VALLEY_RATIO = 0.42;
+  const angleFor  = i => (-90 + i * 72) * Math.PI / 180;
+  const valleyFor = i => (-90 + i * 72 + 36) * Math.PI / 180;
+  const chipAngleFor = angleFor; // labels blijven op de vaste, ongekantelde positie
+
+  // ── Echte 3D-rotatie + projectie (geen 2D-pinwheel-rotatie) ──
+  // De ster is een piramide: 10 basispunten (5 sterpunten + 5 dalen) in het
+  // vlak z=0, met een verhoogde top (apex) die naar de kijker toe steekt.
+  // Dat geheel wordt rond de X- en Y-as gekanteld en dan pas naar 2D geprojecteerd,
+  // zodat elke driehoekige zijde zijn eigen 3D-normaalvector heeft — de belichting
+  // volgt daaruit, in plaats van een arbitraire links/rechts-verdeling.
+  const ROT_X = 20 * Math.PI / 180;
+  const ROT_Y = -14 * Math.PI / 180;
+  function rotate(x, y, z) {
+    const y1 = y * Math.cos(ROT_X) - z * Math.sin(ROT_X);
+    const z1 = y * Math.sin(ROT_X) + z * Math.cos(ROT_X);
+    const x2 = x * Math.cos(ROT_Y) + z1 * Math.sin(ROT_Y);
+    const z2 = -x * Math.sin(ROT_Y) + z1 * Math.cos(ROT_Y);
+    return { x: x2, y: y1, z: z2 };
+  }
+  const project = p => [+(cx + p.x).toFixed(1), +(cy + p.y).toFixed(1)];
   const toPoly = pts => pts.map(p => p.join(',')).join(' ');
 
-  const gridPolys = [0.25, 0.5, 0.75, 1].map(level =>
-    `<polygon points="${toPoly(STAT_DEFS.map((_, i) => pt(i, level)))}" class="star-grid" />`
+  // Decoratieve, platte grid-ringen — zelfde 3D-rotatie, geen belichting (enkel omtrek)
+  const gridRing3D = level => {
+    const pts = [];
+    for (let i = 0; i < 5; i++) {
+      pts.push(rotate(R * level * Math.cos(angleFor(i)), R * level * Math.sin(angleFor(i)), 0));
+      pts.push(rotate(R * level * VALLEY_RATIO * Math.cos(valleyFor(i)), R * level * VALLEY_RATIO * Math.sin(valleyFor(i)), 0));
+    }
+    return pts;
+  };
+  const gridPolys = [0.35, 0.6, 0.82, 1].map(level =>
+    `<polygon points="${toPoly(gridRing3D(level).map(project))}" class="star-grid" />`
   ).join('');
 
-  const axisLines = STAT_DEFS.map((_, i) => {
-    const [x, y] = pt(i, 1);
+  const axisLines = stats.map((_, i) => {
+    const p = rotate(R * Math.cos(angleFor(i)), R * Math.sin(angleFor(i)), 0);
+    const [x, y] = project(p);
     return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" class="star-axis" />`;
   }).join('');
 
-  const dataPts = fractions.map((v, i) => pt(i, v));
-  const dataPoly = `<polygon points="${toPoly(dataPts)}" class="star-fill" /><polygon points="${toPoly(dataPts)}" class="star-outline" />`;
+  // Data-piramide: basis op de eigen fractie per stat, top verhoogd naargelang
+  // het algemene dagniveau (hoger gemiddelde = een "voller", meer bol/3D-effect).
+  const base3D = [];
+  for (let i = 0; i < 5; i++) {
+    base3D.push({ x: R * stats[i].frac * Math.cos(angleFor(i)), y: R * stats[i].frac * Math.sin(angleFor(i)), z: 0 });
+    const nextFrac = stats[(i + 1) % 5].frac;
+    const vr = R * Math.min(stats[i].frac, nextFrac) * VALLEY_RATIO;
+    base3D.push({ x: vr * Math.cos(valleyFor(i)), y: vr * Math.sin(valleyFor(i)), z: 0 });
+  }
+  const overallFrac = stats.reduce((a, s) => a + s.frac, 0) / stats.length;
+  const apex3D = { x: 0, y: 0, z: R * 0.55 * Math.max(overallFrac, 0.15) };
 
-  const labels = STAT_DEFS.map((s, i) => {
-    const [x, y] = pt(i, 1.38);
-    return `<text x="${x}" y="${y}" class="star-label" text-anchor="middle" dominant-baseline="middle">${s.label}</text>`;
+  const apexR = rotate(apex3D.x, apex3D.y, apex3D.z);
+  const baseR = base3D.map(p => rotate(p.x, p.y, p.z));
+
+  const Llen = Math.hypot(-0.35, -0.55, 0.75);
+  const L = { x: -0.35 / Llen, y: -0.55 / Llen, z: 0.75 / Llen };
+  const shadeColor = t => {
+    const c1 = [214, 128, 8], c2 = [255, 188, 38];
+    const [r, g, b] = c1.map((c, i) => Math.round(c + (c2[i] - c) * t));
+    return `rgb(${r},${g},${b})`;
+  };
+
+  const n = baseR.length;
+  const facets = [];
+  for (let i = 0; i < n; i++) {
+    const b1 = baseR[i], b2 = baseR[(i + 1) % n];
+    const e1 = { x: b1.x - apexR.x, y: b1.y - apexR.y, z: b1.z - apexR.z };
+    const e2 = { x: b2.x - apexR.x, y: b2.y - apexR.y, z: b2.z - apexR.z };
+    let nx = e1.y * e2.z - e1.z * e2.y;
+    let ny = e1.z * e2.x - e1.x * e2.z;
+    let nz = e1.x * e2.y - e1.y * e2.x;
+    const nlen = Math.hypot(nx, ny, nz) || 1;
+    nx /= nlen; ny /= nlen; nz /= nlen;
+    const raw = nx * L.x + ny * L.y + nz * L.z;
+    const brightness = Math.max(0.3, Math.min(1, (raw + 0.55) / 1.15));
+    const [ax, ay] = project(apexR);
+    const [bx1, by1] = project(b1);
+    const [bx2, by2] = project(b2);
+    facets.push(`<polygon points="${ax},${ay} ${bx1},${by1} ${bx2},${by2}" fill="${shadeColor(brightness)}" class="star-facet" />`);
+  }
+  const outlinePts = toPoly(baseR.map(project));
+  const dataShape = `${facets.join('')}<polygon points="${outlinePts}" class="star-outline" />`;
+
+  // Zachte contactschaduw onder de ster (lichtbron linksboven, dus schaduw rechtsonder)
+  // — geeft het gevoel dat de ster boven het grid "zweeft".
+  const shadowDefs = `<defs><radialGradient id="starShadow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="rgba(0,0,0,0.5)" />
+    <stop offset="100%" stop-color="rgba(0,0,0,0)" />
+  </radialGradient></defs>`;
+  const shadow = `<ellipse cx="${cx + 7}" cy="${cy + 11}" rx="${R * 0.66}" ry="${R * 0.4}" fill="url(#starShadow)" />`;
+
+  const svg = `<svg viewBox="0 0 200 200" class="star-chart-svg">${shadowDefs}${gridPolys}${axisLines}${shadow}${dataShape}</svg>`;
+
+  const chips = stats.map((s, i) => {
+    const a = chipAngleFor(i);
+    const left = 50 + 38 * Math.cos(a);
+    const top  = 50 + 38 * Math.sin(a);
+    const tilt = i % 2 === 0 ? -5 : 5;
+    return `<div class="star-chip" style="left:${left}%; top:${top}%; transform:translate(-50%,-50%) rotate(${tilt}deg)">
+      <div class="star-chip-tag"><span class="star-chip-label">${s.label}</span><span class="star-chip-rank">${s.score}</span></div>
+      <div class="star-chip-frac${s.score >= s.max ? ' star-chip-max' : ''}">${s.score >= s.max ? 'MAX' : `${s.score}/${s.max}`}</div>
+    </div>`;
   }).join('');
 
-  el.innerHTML = `<svg viewBox="0 0 200 200" class="star-chart-svg">${gridPolys}${axisLines}${dataPoly}${labels}</svg>`;
+  el.innerHTML = `<div class="star-chart-inner">${svg}${chips}</div>`;
 }
 
 async function saveCheckin(silent = false) {
@@ -435,6 +518,7 @@ async function saveCheckin(silent = false) {
     koude_douche: !!state.entry.koude_douche,
     comfort_zone_uitdaging: !!state.entry.comfort_zone_uitdaging,
     iemand_geholpen: !!state.entry.iemand_geholpen,
+    geflirt: !!state.entry.geflirt,
     slaap: state.sleep,
     gewicht: state.weight,
     mood_emoji: state.mood,
@@ -1309,7 +1393,7 @@ function initSwipe() {
     const boolKeys = ['gym','gewerkt','geklust','geschreven','stretch_routine','geleest','gemediteerd',
       'tijd_met_anderen','gespeeld','te_veel_weinig_eten','gedoomscrolled',
       'gemasturbeerd','porno_gekeken','opleiding_gevolgd','onbekende_aangesproken',
-      'koude_douche','comfort_zone_uitdaging','iemand_geholpen'];
+      'koude_douche','comfort_zone_uitdaging','iemand_geholpen','geflirt'];
 
     // Apply real data to under-card as soon as it's available (cache = likely instant)
     loadEntry(targetDate).then(row => {

@@ -263,23 +263,11 @@ main {
   animation: habit-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.habit-btn.active {
-  background: var(--bonus-bg);
-  color: var(--bonus);
-}
-
-.habit-btn.essential.active {
-  background: rgba(74, 124, 89, 0.08);
-  color: var(--success);
-}
-
-[data-theme="dark"] .habit-btn.essential.active {
-  background: rgba(106, 170, 126, 0.10);
-}
-
+.habit-btn.active,
+.habit-btn.essential.active,
 .habit-btn.bad.active {
-  background: var(--danger-bg);
-  color: var(--danger);
+  background: var(--accent-bg);
+  color: var(--accent);
 }
 
 .habit-check {
@@ -295,21 +283,11 @@ main {
   transition: all 0.15s;
 }
 
-.habit-btn.active .habit-check {
-  border-color: var(--bonus);
-  background: var(--bonus);
-  color: white;
-}
-
-.habit-btn.essential.active .habit-check {
-  border-color: var(--success);
-  background: var(--success);
-  color: white;
-}
-
+.habit-btn.active .habit-check,
+.habit-btn.essential.active .habit-check,
 .habit-btn.bad.active .habit-check {
-  border-color: var(--danger);
-  background: var(--danger);
+  border-color: var(--accent);
+  background: var(--accent);
   color: white;
 }
 
@@ -607,46 +585,139 @@ textarea::placeholder { color: var(--text-muted); }
 
 /* ── Persona-stats ster ── */
 .star-chart-card {
-  background: #0c0c0e;
-  border-radius: 14px;
-  padding: 14px 8px 6px;
-  margin-bottom: 20px;
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0 2px, transparent 2px 14px),
+    #0a0a0a;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+  padding: 46px 16px 20px;
+  margin-bottom: 22px;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 0 0 1px #1a1a1a, 0 10px 28px rgba(0,0,0,0.4);
 }
 
 .star-chart-card::before {
+  /* diagonale rode balk, linksboven — enige rode accent, zoals de rode inkleuring in de referentie */
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, #e60027, #ff3b52 45%, #e60027 100%);
+  top: 0; left: 0;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(100deg, rgba(230,0,39,0.35), transparent 60%);
+  z-index: 0;
 }
 
-.star-chart-svg { display: block; width: 100%; max-width: 260px; margin: 0 auto; }
+.star-chart-card::after {
+  /* gele hoek-accent linksonder, volgt de clip-path-inkeping */
+  content: '';
+  position: absolute;
+  left: 0; bottom: 0;
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 0 0 26px 26px;
+  border-color: transparent transparent #f6c700 transparent;
+}
 
-.star-grid { fill: none; stroke: rgba(255,255,255,0.12); stroke-width: 1; }
-.star-axis { stroke: rgba(255,255,255,0.16); stroke-width: 1; }
+.star-chart-title {
+  position: absolute;
+  top: 10px; right: 10px;
+  z-index: 3;
+  background: #fff;
+  color: #111;
+  clip-path: polygon(4% 0, 100% 6%, 96% 88%, 92% 100%, 6% 96%, 0 18%);
+  padding: 5px 14px 6px 10px;
+  font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 
-.star-fill {
-  fill: #e60027;
-  fill-opacity: 0.32;
-  stroke: none;
+.star-chart-inner { position: relative; z-index: 2; }
+
+.star-chart-svg {
+  display: block;
+  width: 100%;
+  max-width: 230px;
+  margin: 0 auto;
+  position: relative;
+  filter: drop-shadow(0 0 8px rgba(246,199,0,0.18));
+}
+
+.star-grid { fill: none; stroke: rgba(255,255,255,0.09); stroke-width: 1; }
+.star-axis { stroke: rgba(255,255,255,0.14); stroke-width: 1; }
+
+.star-facet {
+  stroke: rgba(80,48,0,0.5);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
 }
 
 .star-outline {
   fill: none;
-  stroke: #ff3b52;
-  stroke-width: 1.5;
+  stroke: #4a3000;
+  stroke-width: 1.3;
   stroke-linejoin: round;
   transition: all 0.3s ease;
 }
 
-.star-label {
-  font-size: 8.5px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  fill: #f0ede8;
+/* ── Stat-tags (gele stickers rond de ster) ── */
+.star-chip {
+  position: absolute;
+  z-index: 3;
+  text-align: center;
+  width: 76px;
+}
+
+.star-chip-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f6c700;
+  color: #111;
+  clip-path: polygon(6% 0, 100% 10%, 94% 100%, 0 90%);
+  padding: 3px 9px 4px 7px;
+  font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
+  font-size: 0.74rem;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.01em;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.star-chip-rank {
+  background: #111;
+  color: #f6c700;
+  border-radius: 50%;
+  width: 13px; height: 13px;
+  font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
+  font-size: 0.64rem;
+  font-weight: 800;
+  font-style: normal;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.star-chip-frac {
+  font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #cfcac2;
+  margin-top: 3px;
+}
+
+.star-chip-max {
+  color: #ffde59;
+  font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
+  font-weight: 900;
+  font-style: normal;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
 /* ── Mood distribution ── */
