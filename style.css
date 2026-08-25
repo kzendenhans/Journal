@@ -232,6 +232,10 @@ main {
   overflow: hidden;
 }
 
+.habit-grid > .habit-btn:nth-child(3):last-child {
+  grid-column: 1 / -1;
+}
+
 .habit-btn {
   background: var(--surface);
   border: none;

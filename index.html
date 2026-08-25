@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Arsenal:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=153">
+  <link rel="stylesheet" href="style.css?v=154">
 </head>
 <body>
 <div id="app">
@@ -46,7 +46,7 @@
 
       <!-- Slaap -->
       <div class="habit-section">
-        <h2>Slaap</h2>
+        <h2 class="persona-heading">Slaap</h2>
         <div class="sleep-row">
           <div class="sleep-controls">
             <button class="sleep-btn" id="sleep-minus">−</button>
@@ -62,7 +62,7 @@
 
       <!-- Gewicht -->
       <div class="habit-section">
-        <h2>Gewicht</h2>
+        <h2 class="persona-heading">Gewicht</h2>
         <div class="weight-row">
           <input type="number" id="weight-input" placeholder="—" step="0.1" min="40" max="200">
           <span class="weight-unit">kg</span>
@@ -122,7 +122,7 @@
 
       <!-- Mood -->
       <div class="habit-section">
-        <h2>Stemming</h2>
+        <h2 class="persona-heading">Stemming</h2>
         <div class="mood-emojis">
           <button class="mood-btn" data-mood="😞">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -175,7 +175,7 @@
 
       <!-- Notities -->
       <div class="habit-section">
-        <h2>Notities</h2>
+        <h2 class="persona-heading">Notities</h2>
         <textarea id="notes-input" placeholder="Hoe was je dag?"></textarea>
       </div>
 
@@ -304,7 +304,7 @@
       <div class="settings-section">
         <h2>Over</h2>
         <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.6">
-          Dagboek v1.59<br>
+          Dagboek v1.60<br>
           Data wordt opgeslagen in Supabase.
         </p>
       </div>
@@ -335,6 +335,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="app.js?v=153"></script>
+<script src="app.js?v=154"></script>
 </body>
 </html>
