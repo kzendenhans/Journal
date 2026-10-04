@@ -1015,6 +1015,11 @@ function populateSettingsFields() {
 }
 
 // ── Sensor log ────────────────────────────────────────────────────────────────
+function toDatetimeLocal(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function formatDateTimeNL(iso) {
   const d = new Date(iso);
   const days = ['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
@@ -1034,7 +1039,9 @@ async function loadSensorLogs() {
 async function renderSensorSection() {
   const statusEl = document.getElementById('sensor-status');
   const histEl = document.getElementById('sensor-history');
+  const inputEl = document.getElementById('sensor-start-input');
   if (!statusEl || !histEl) return;
+  if (inputEl) inputEl.value = toDatetimeLocal(new Date());
   if (!cfg.sbUrl || !cfg.sbKey) {
     statusEl.textContent = 'Koppel eerst Supabase hierboven.';
     histEl.innerHTML = '';
@@ -1065,9 +1072,15 @@ async function renderSensorSection() {
 
 async function logSensorStart() {
   if (!cfg.sbUrl || !cfg.sbKey) { showToast('Koppel eerst Supabase'); return; }
+  const inputEl = document.getElementById('sensor-start-input');
+  let startedAt = new Date();
+  if (inputEl && inputEl.value) {
+    const parsed = new Date(inputEl.value);
+    if (!isNaN(parsed.getTime())) startedAt = parsed;
+  }
   haptic();
   try {
-    await sbFetch('/sensor_logs', { method: 'POST', body: JSON.stringify({ started_at: new Date().toISOString() }) });
+    await sbFetch('/sensor_logs', { method: 'POST', body: JSON.stringify({ started_at: startedAt.toISOString() }) });
     showToast('✓ Sensor-start geregistreerd');
     renderSensorSection();
   } catch(e) {
