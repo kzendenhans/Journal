@@ -1011,6 +1011,68 @@ function populateSettingsFields() {
   document.getElementById('sb-key').value = cfg.sbKey;
   document.getElementById('gemini-key').value = cfg.geminiKey;
   updateNotificationStatus();
+  renderSensorSection();
+}
+
+// ── Sensor log ────────────────────────────────────────────────────────────────
+function formatDateTimeNL(iso) {
+  const d = new Date(iso);
+  const days = ['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
+  const months = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} · ${hh}:${mm}`;
+}
+
+async function loadSensorLogs() {
+  if (!cfg.sbUrl || !cfg.sbKey) return [];
+  try {
+    return await sbFetch('/sensor_logs?order=started_at.desc&limit=12') || [];
+  } catch { return []; }
+}
+
+async function renderSensorSection() {
+  const statusEl = document.getElementById('sensor-status');
+  const histEl = document.getElementById('sensor-history');
+  if (!statusEl || !histEl) return;
+  if (!cfg.sbUrl || !cfg.sbKey) {
+    statusEl.textContent = 'Koppel eerst Supabase hierboven.';
+    histEl.innerHTML = '';
+    return;
+  }
+  statusEl.textContent = 'Laden…';
+  const logs = await loadSensorLogs();
+  if (!logs.length) {
+    statusEl.textContent = 'Nog geen sensor geregistreerd.';
+    histEl.innerHTML = '';
+    return;
+  }
+  const days = Math.floor((Date.now() - new Date(logs[0].started_at).getTime()) / 86400000);
+  statusEl.innerHTML = `Huidige sensor gestart op <strong>${formatDateTimeNL(logs[0].started_at)}</strong> — loopt nu <strong>${days}</strong> dag${days === 1 ? '' : 'en'}.`;
+
+  histEl.innerHTML = logs.map((log, i) => {
+    let durationTxt = 'loopt nog';
+    if (i > 0) {
+      const lifespan = Math.round((new Date(logs[i-1].started_at).getTime() - new Date(log.started_at).getTime()) / 86400000);
+      durationTxt = `liep ${lifespan} dag${lifespan === 1 ? '' : 'en'}`;
+    }
+    return `<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:0.82rem">
+      <span>${formatDateTimeNL(log.started_at)}</span>
+      <span style="color:var(--text-muted)">${durationTxt}</span>
+    </div>`;
+  }).join('');
+}
+
+async function logSensorStart() {
+  if (!cfg.sbUrl || !cfg.sbKey) { showToast('Koppel eerst Supabase'); return; }
+  haptic();
+  try {
+    await sbFetch('/sensor_logs', { method: 'POST', body: JSON.stringify({ started_at: new Date().toISOString() }) });
+    showToast('✓ Sensor-start geregistreerd');
+    renderSensorSection();
+  } catch(e) {
+    showToast('Fout: ' + e.message);
+  }
 }
 
 function saveSupabase() {

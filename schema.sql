@@ -8,6 +8,7 @@ create table if not exists habit_entries (
   gewerkt boolean default false,
   geklust boolean default false,
   geschreven boolean default false,
+  stretch_routine boolean default false,
   -- Bonuses
   geleest boolean default false,
   gemediteerd boolean default false,
@@ -34,3 +35,13 @@ create table if not exists habit_entries (
 -- Allow public read/write (for personal use without auth)
 alter table habit_entries enable row level security;
 create policy "Public access" on habit_entries for all using (true) with check (true);
+
+create table if not exists sensor_logs (
+  id uuid default uuid_generate_v4() primary key,
+  started_at timestamptz not null default now(),
+  note text,
+  created_at timestamptz default now()
+);
+
+alter table sensor_logs enable row level security;
+create policy "Public access" on sensor_logs for all using (true) with check (true);

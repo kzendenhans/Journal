@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Arsenal:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=155">
+  <link rel="stylesheet" href="style.css?v=162">
 </head>
 <body>
 <div id="app">
@@ -267,6 +267,15 @@
       </div>
 
       <div class="settings-section">
+        <h2>Sensor</h2>
+        <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:12px" id="sensor-status">
+          Nog geen sensor geregistreerd.
+        </p>
+        <button class="save-btn" onclick="logSensorStart()">Nieuwe sensor gestart (nu)</button>
+        <div id="sensor-history" style="margin-top:14px"></div>
+      </div>
+
+      <div class="settings-section">
         <h2>Groq AI (gratis)</h2>
         <label>API Key</label>
         <input type="text" id="gemini-key" placeholder="gsk_…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
@@ -304,7 +313,7 @@
       <div class="settings-section">
         <h2>Over</h2>
         <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.6">
-          Dagboek v1.61<br>
+          Dagboek v1.62<br>
           Data wordt opgeslagen in Supabase.
         </p>
       </div>
@@ -335,6 +344,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="app.js?v=155"></script>
+<script src="app.js?v=162"></script>
 </body>
 </html>
