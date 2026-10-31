@@ -45,3 +45,14 @@ create table if not exists sensor_logs (
 
 alter table sensor_logs enable row level security;
 create policy "Public access" on sensor_logs for all using (true) with check (true);
+
+create table if not exists tarot_draws (
+  id uuid default uuid_generate_v4() primary key,
+  card text not null,
+  drawn_on date not null default current_date,
+  note text,
+  created_at timestamptz default now()
+);
+
+alter table tarot_draws enable row level security;
+create policy "Public access" on tarot_draws for all using (true) with check (true);

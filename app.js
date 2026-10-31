@@ -287,6 +287,7 @@ async function loadCheckinForDate(dateStr) {
   }
 
   renderCheckin();
+  loadTarotDraw(dateStr);
   if (dateStr === todayStr()) loadWeekSummary();
   else { const ws = document.getElementById('week-summary'); if (ws) ws.innerHTML = ''; }
 
@@ -426,11 +427,99 @@ function renderStarChart() {
     const top  = 50 + 38 * Math.sin(a);
     return `<div class="star-chip" style="--el:var(--el-${s.key}); left:${left}%; top:${top}%; transform:translate(-50%,-50%)">
       <div class="star-chip-tag"><span class="star-chip-rank">${s.score}</span><span class="star-chip-label">${s.label}</span></div>
-      <div class="star-chip-frac${s.score >= s.max ? ' star-chip-max' : ''}">${s.score >= s.max ? 'MAX' : `${s.score}/${s.max}`}</div>
     </div>`;
   }).join('');
 
   el.innerHTML = `<div class="star-chart-inner">${svg}${chips}</div>`;
+}
+
+// ── Kaart van de periode (laatst getrokken tarotkaart t.e.m. de getoonde dag) ──
+let _tarotFormOpen = false;
+
+function escHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function loadTarotDraw(dateStr) {
+  const el = document.getElementById('tarot-draw');
+  if (!el) return;
+  if (!cfg.sbUrl || !cfg.sbKey) { el.innerHTML = ''; return; }
+  try {
+    const rows = await sbFetch(`/tarot_draws?drawn_on=lte.${dateStr}&order=drawn_on.desc,created_at.desc&limit=1`);
+    renderTarotDraw((rows && rows[0]) || null, dateStr);
+  } catch (e) {
+    el.innerHTML = '';
+  }
+}
+
+function renderTarotDraw(draw, dateStr) {
+  const el = document.getElementById('tarot-draw');
+  const card = draw && TAROT_CARDS.find(c => c.id === draw.card);
+  const isToday = dateStr === todayStr();
+  if (!card && !isToday) { el.innerHTML = ''; return; }
+
+  const groups = [...new Set(TAROT_CARDS.map(c => c.group))];
+  const options = groups.map(g => `<optgroup label="${g}">${
+    TAROT_CARDS.filter(c => c.group === g)
+      .map(c => `<option value="${c.id}"${card && c.id === card.id ? ' selected' : ''}>${c.name}</option>`).join('')
+  }</optgroup>`).join('');
+
+  const form = isToday ? `<div class="tarot-draw-form"${card && !_tarotFormOpen ? ' hidden' : ''}>
+      <select id="tarot-select">${options}</select>
+      <input type="date" id="tarot-date" value="${todayStr()}">
+      <textarea id="tarot-note" rows="2" placeholder="Eigen duiding (optioneel)"></textarea>
+      <div class="tarot-draw-actions">
+        <button class="tarot-btn" onclick="saveTarotDraw()">Opslaan</button>
+        ${card ? '<button class="tarot-btn ghost" onclick="toggleTarotForm(false)">Annuleren</button>' : ''}
+      </div>
+    </div>` : '';
+
+  if (!card) {
+    el.innerHTML = `<div class="habit-section">
+      <h2 class="persona-heading">Kaart van deze periode</h2>
+      <div class="tarot-card tarot-draw" data-element="geest">
+        <p class="tarot-draw-meta">Nog geen kaart getrokken.</p>
+        ${form}
+      </div>
+    </div>`;
+    return;
+  }
+
+  const drawnOn = new Date(draw.drawn_on + 'T12:00:00');
+  const months = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+  el.innerHTML = `<div class="habit-section">
+    <h2 class="persona-heading">Kaart van deze periode</h2>
+    <div class="tarot-card tarot-draw" data-element="${card.element}">
+      <div class="tarot-numeral">${card.numeral || '&nbsp;'}</div>
+      <p class="tarot-draw-meaning">${card.meaning}</p>
+      ${draw.note ? `<p class="tarot-draw-note">${escHtml(draw.note)}</p>` : ''}
+      <div class="tarot-draw-meta">Getrokken op ${drawnOn.getDate()} ${months[drawnOn.getMonth()]}${isToday ? ' · <button class="tarot-link" onclick="toggleTarotForm(true)">Nieuwe kaart</button>' : ''}</div>
+      ${form}
+      <div class="tarot-banner"><span class="suit-badge"><svg viewBox="0 0 24 24"><use href="#suit-${card.element}"/></svg></span><h2 class="persona-heading">${card.name}</h2></div>
+    </div>
+  </div>`;
+}
+
+function toggleTarotForm(open) {
+  _tarotFormOpen = open;
+  const form = document.querySelector('.tarot-draw-form');
+  if (form) form.hidden = !open;
+}
+
+async function saveTarotDraw() {
+  if (!cfg.sbUrl || !cfg.sbKey) { showToast('Koppel eerst Supabase'); return; }
+  const card = document.getElementById('tarot-select').value;
+  const drawnOn = document.getElementById('tarot-date').value || todayStr();
+  const note = document.getElementById('tarot-note').value.trim();
+  haptic();
+  try {
+    await sbFetch('/tarot_draws', { method: 'POST', body: JSON.stringify({ card, drawn_on: drawnOn, note: note || null }) });
+    _tarotFormOpen = false;
+    showToast('✓ Kaart opgeslagen');
+    loadTarotDraw(state.date);
+  } catch (e) {
+    showToast('Fout: ' + e.message);
+  }
 }
 
 async function saveCheckin(silent = false) {

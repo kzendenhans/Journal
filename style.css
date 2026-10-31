@@ -777,18 +777,85 @@ textarea::placeholder { color: var(--text-muted); }
   flex-shrink: 0;
 }
 
-.star-chip-frac {
-  font-family: var(--display);
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  margin-top: 4px;
+/* ── Kaart van de periode ── */
+.tarot-draw-meaning {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text);
+  text-align: center;
+  padding: 0 8px;
+  margin: 2px 0 8px;
 }
 
-.star-chip-max {
+.tarot-draw-note {
+  font-size: 0.85rem;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--text-sub);
+  text-align: center;
+  padding: 0 8px;
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+}
+
+.tarot-draw-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding-top: 4px;
+}
+
+.tarot-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
   color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.tarot-draw-form { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.tarot-draw-form[hidden] { display: none; }
+
+.tarot-draw-form select,
+.tarot-draw-form input,
+.tarot-draw-form textarea {
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  padding: 10px;
+  font-family: inherit;
+  font-size: 16px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.tarot-draw-actions { display: flex; gap: 8px; }
+
+.tarot-btn {
+  flex: 1;
+  background: var(--ink);
+  color: var(--surface);
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  padding: 10px;
+  font-family: var(--display);
   font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+
+.tarot-btn.ghost { background: none; color: var(--text); }
+
+.tarot-draw .tarot-banner { max-width: 100%; }
+
+.habit-section .tarot-draw .tarot-banner h2.persona-heading {
+  font-size: 0.8rem;
   letter-spacing: 0.14em;
+  text-align: center;
 }
 
 /* ── Mood distribution ── */
