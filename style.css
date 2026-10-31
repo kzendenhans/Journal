@@ -777,6 +777,26 @@ textarea::placeholder { color: var(--text-muted); }
   flex-shrink: 0;
 }
 
+/* Element dat deze periode extra aandacht krijgt (volgens de getrokken kaart) */
+.habit-section.tarot-card.tarot-focus {
+  border-color: var(--el);
+  box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--el),
+              0 0 0 3px color-mix(in srgb, var(--el) 30%, transparent),
+              0 4px 18px color-mix(in srgb, var(--el) 35%, transparent);
+}
+
+.tarot-focus .tarot-numeral { color: var(--text); }
+.tarot-focus .tarot-numeral::after {
+  content: ' · Aandacht deze periode';
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+}
+
+.star-chip.focus .star-chip-tag {
+  background: color-mix(in srgb, var(--el) 28%, var(--surface));
+  border-width: 2px;
+}
+
 /* ── Kaart van de periode ── */
 .tarot-draw-meaning {
   font-size: 0.92rem;

@@ -425,7 +425,7 @@ function renderStarChart() {
     const a = angleFor(i);
     const left = 50 + 38 * Math.cos(a);
     const top  = 50 + 38 * Math.sin(a);
-    return `<div class="star-chip" style="--el:var(--el-${s.key}); left:${left}%; top:${top}%; transform:translate(-50%,-50%)">
+    return `<div class="star-chip${s.key === _tarotFocus ? ' focus' : ''}" style="--el:var(--el-${s.key}); left:${left}%; top:${top}%; transform:translate(-50%,-50%)">
       <div class="star-chip-tag"><span class="star-chip-rank">${s.score}</span><span class="star-chip-label">${s.label}</span></div>
     </div>`;
   }).join('');
@@ -435,6 +435,15 @@ function renderStarChart() {
 
 // ── Kaart van de periode (laatst getrokken tarotkaart t.e.m. de getoonde dag) ──
 let _tarotFormOpen = false;
+let _tarotFocus = null; // element van de huidige kaart, krijgt extra nadruk
+
+function applyTarotFocus(element) {
+  _tarotFocus = element || null;
+  document.querySelectorAll('.habit-section.tarot-card').forEach(sec => {
+    sec.classList.toggle('tarot-focus', sec.dataset.element === _tarotFocus);
+  });
+  renderStarChart();
+}
 
 function escHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -443,12 +452,16 @@ function escHtml(str) {
 async function loadTarotDraw(dateStr) {
   const el = document.getElementById('tarot-draw');
   if (!el) return;
-  if (!cfg.sbUrl || !cfg.sbKey) { el.innerHTML = ''; return; }
+  if (!cfg.sbUrl || !cfg.sbKey) { el.innerHTML = ''; applyTarotFocus(null); return; }
   try {
     const rows = await sbFetch(`/tarot_draws?drawn_on=lte.${dateStr}&order=drawn_on.desc,created_at.desc&limit=1`);
-    renderTarotDraw((rows && rows[0]) || null, dateStr);
+    const draw = (rows && rows[0]) || null;
+    renderTarotDraw(draw, dateStr);
+    const card = draw && TAROT_CARDS.find(c => c.id === draw.card);
+    applyTarotFocus(card && card.element);
   } catch (e) {
     el.innerHTML = '';
+    applyTarotFocus(null);
   }
 }
 
