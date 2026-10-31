@@ -878,6 +878,109 @@ textarea::placeholder { color: var(--text-muted); }
   text-align: center;
 }
 
+/* ── Tarotscherm ── */
+#screen-tarot .screen-header h1 { flex: 1; text-align: center; }
+
+.tarot-view { text-align: center; margin-bottom: 32px; }
+
+.tarot-view-status {
+  font-family: var(--display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+
+.tarot-view-img {
+  display: block;
+  width: 70%;
+  max-width: 280px;
+  margin: 0 auto;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.25), 0 0 0 4px color-mix(in srgb, var(--el) 35%, transparent);
+}
+
+.tarot-view .tarot-banner { margin: 16px auto 8px; max-width: 100%; }
+
+.tarot-view-name {
+  font-family: var(--display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.tarot-view .tarot-draw-meaning { margin-top: 12px; }
+
+.tarot-tally {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.tarot-tally-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 2px;
+  background: var(--surface);
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+}
+
+.tarot-tally-label {
+  font-family: var(--display);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-sub);
+}
+
+.tarot-tally-n {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.tarot-history { display: flex; flex-direction: column; gap: 6px; }
+
+.tarot-history-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px 8px 8px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tarot-history-row.selected { border-color: var(--el); box-shadow: 0 0 0 2px color-mix(in srgb, var(--el) 30%, transparent); }
+
+.tarot-history-row img {
+  width: 34px;
+  height: 58px;
+  object-fit: cover;
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.tarot-history-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.tarot-history-name { font-size: 0.9rem; }
+.tarot-history-date { font-size: 0.72rem; color: var(--text-muted); }
+
 /* ── Mood distribution ── */
 .mood-dist {
   display: flex;

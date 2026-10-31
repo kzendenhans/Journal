@@ -150,11 +150,14 @@ function navigate(screenId) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(`screen-${screenId}`).classList.add('active');
-  document.querySelector(`.nav-item[data-screen="${screenId}"]`).classList.add('active');
+  const navItem = document.querySelector(`.nav-item[data-screen="${screenId}"]`)
+    || document.querySelector('.nav-item[data-screen="checkin"]');
+  navItem.classList.add('active');
 
   if (screenId === 'insights') loadInsights();
   if (screenId === 'reflections') renderReflectionsScreen();
   if (screenId === 'settings') populateSettingsFields();
+  if (screenId === 'tarot') loadTarotScreen();
 
   // Scroll to top
   document.getElementById('main').scrollTop = 0;
@@ -506,7 +509,7 @@ function renderTarotDraw(draw, dateStr) {
       <div class="tarot-numeral">${card.numeral || '&nbsp;'}</div>
       <p class="tarot-draw-meaning">${card.meaning}</p>
       ${draw.note ? `<p class="tarot-draw-note">${escHtml(draw.note)}</p>` : ''}
-      <div class="tarot-draw-meta">Getrokken op ${drawnOn.getDate()} ${months[drawnOn.getMonth()]}${isToday ? ' · <button class="tarot-link" onclick="toggleTarotForm(true)">Nieuwe kaart</button>' : ''}</div>
+      <div class="tarot-draw-meta">Getrokken op ${drawnOn.getDate()} ${months[drawnOn.getMonth()]} · <button class="tarot-link" onclick="navigate('tarot')">Bekijk kaart</button>${isToday ? ' · <button class="tarot-link" onclick="toggleTarotForm(true)">Nieuwe kaart</button>' : ''}</div>
       ${form}
       <div class="tarot-banner"><span class="suit-badge"><svg viewBox="0 0 24 24"><use href="#suit-${card.element}"/></svg></span><h2 class="persona-heading">${card.name}</h2></div>
     </div>
@@ -533,6 +536,90 @@ async function saveTarotDraw() {
   } catch (e) {
     showToast('Fout: ' + e.message);
   }
+}
+
+// ── Tarotscherm: grote kaart, duiding en geschiedenis ──
+let _tarotDraws = [];
+let _tarotSelected = 0;
+
+function fmtDrawDate(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const months = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+async function loadTarotScreen() {
+  const el = document.getElementById('tarot-content');
+  if (!cfg.sbUrl || !cfg.sbKey) {
+    el.innerHTML = `<div class="empty">Configureer Supabase in Instellingen.</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="loading"><div class="spinner"></div>Laden…</div>`;
+  try {
+    _tarotDraws = (await sbFetch('/tarot_draws?order=drawn_on.desc,created_at.desc&limit=200') || [])
+      .filter(d => TAROT_CARDS.some(c => c.id === d.card));
+    _tarotSelected = 0;
+    renderTarotScreen();
+  } catch (e) {
+    el.innerHTML = `<div class="empty">Kan kaarten niet laden.</div>`;
+  }
+}
+
+function selectTarotDraw(i) {
+  _tarotSelected = i;
+  renderTarotScreen();
+  document.getElementById('main').scrollTop = 0;
+}
+
+function renderTarotScreen() {
+  const el = document.getElementById('tarot-content');
+  if (!_tarotDraws.length) {
+    el.innerHTML = `<div class="empty">Nog geen kaart getrokken.</div>`;
+    return;
+  }
+
+  const draw = _tarotDraws[_tarotSelected];
+  const card = TAROT_CARDS.find(c => c.id === draw.card);
+  const status = _tarotSelected === 0 ? 'Kaart van deze periode' : 'Eerder getrokken';
+
+  const counts = STAT_DEFS.map(s => ({
+    ...s,
+    n: _tarotDraws.filter(d => TAROT_CARDS.find(c => c.id === d.card).element === s.key).length,
+  }));
+  const tally = counts.map(s => `<div class="tarot-tally-item" style="--el:var(--el-${s.key})">
+      <span class="suit-badge"><svg viewBox="0 0 24 24"><use href="#suit-${s.key}"/></svg></span>
+      <span class="tarot-tally-label">${s.label}</span>
+      <span class="tarot-tally-n">${s.n}</span>
+    </div>`).join('');
+
+  const history = _tarotDraws.map((d, i) => {
+    const c = TAROT_CARDS.find(x => x.id === d.card);
+    return `<button class="tarot-history-row${i === _tarotSelected ? ' selected' : ''}" style="--el:var(--el-${c.element})" onclick="selectTarotDraw(${i})">
+      <img src="cards/${c.id}.jpg" alt="" loading="lazy">
+      <span class="tarot-history-text"><span class="tarot-history-name">${c.name}</span><span class="tarot-history-date">${fmtDrawDate(d.drawn_on)}</span></span>
+      <span class="suit-badge"><svg viewBox="0 0 24 24"><use href="#suit-${c.element}"/></svg></span>
+    </button>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="tarot-view" style="--el:var(--el-${card.element})">
+      <div class="tarot-view-status">${status}</div>
+      <img class="tarot-view-img" src="cards/${card.id}.jpg" alt="${card.name}">
+      <div class="tarot-banner"><span class="suit-badge"><svg viewBox="0 0 24 24"><use href="#suit-${card.element}"/></svg></span><h2 class="tarot-view-name">${card.name}</h2></div>
+      <div class="tarot-draw-meta">Getrokken op ${fmtDrawDate(draw.drawn_on)}</div>
+      <p class="tarot-draw-meaning">${card.meaning}</p>
+      ${draw.note ? `<p class="tarot-draw-note">${escHtml(draw.note)}</p>` : ''}
+    </div>
+
+    <div class="habit-section">
+      <h2 class="persona-heading">Elementen in je trekkingen</h2>
+      <div class="tarot-tally">${tally}</div>
+    </div>
+
+    <div class="habit-section">
+      <h2 class="persona-heading">Geschiedenis</h2>
+      <div class="tarot-history">${history}</div>
+    </div>`;
 }
 
 async function saveCheckin(silent = false) {

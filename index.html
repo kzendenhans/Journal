@@ -8,12 +8,12 @@
   <meta name="theme-color" content="#efe4c8" id="theme-color-meta">
   <title>Dagboek</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon2.png?v=164d">
+  <link rel="apple-touch-icon" href="icon2.png?v=164e">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=164d">
+  <link rel="stylesheet" href="style.css?v=164e">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -245,6 +245,16 @@
       </div>
     </section>
 
+    <!-- ── Tarot Screen (geopend vanaf de kaart op het invulscherm) ── -->
+    <section id="screen-tarot" class="screen">
+      <div class="screen-header">
+        <button class="date-nav-btn" onclick="navigate('checkin')" title="Terug">‹</button>
+        <h1>Tarot</h1>
+        <button class="theme-btn theme-toggle-btn" title="Dag/nacht">○</button>
+      </div>
+      <div id="tarot-content"></div>
+    </section>
+
     <!-- ── Settings Screen ── -->
     <section id="screen-settings" class="screen">
       <div class="screen-header">
@@ -360,7 +370,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="tarot.js?v=164d"></script>
-<script src="app.js?v=164d"></script>
+<script src="tarot.js?v=164e"></script>
+<script src="app.js?v=164e"></script>
 </body>
 </html>
