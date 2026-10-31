@@ -1,4 +1,4 @@
-// v1.47
+// v1.64
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(
   caches.keys()

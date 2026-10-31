@@ -3,38 +3,55 @@
 
 /* ── Themes ── */
 :root {
-  --bg: #f6f3ee;
-  --bg-2: #ede9e2;
-  --surface: #ffffff;
-  --border: #ddd9d2;
-  --text: #1a1916;
-  --text-sub: #4a4741;
-  --text-muted: #9a948c;
-  --accent: #8b7355;
-  --accent-bg: rgba(139, 115, 85, 0.08);
-  --bonus: #5b6fa0;
-  --bonus-bg: rgba(91, 111, 160, 0.08);
-  --danger: #a05b5b;
-  --danger-bg: rgba(160, 91, 91, 0.08);
-  --success: #4a7c59;
+  /* Rider-Waite-Smith: perkament, inkt en de vlakke kleuren van Pamela Colman Smith */
+  --bg: #efe4c8;
+  --bg-2: #e6d8b6;
+  --surface: #f8f0dc;
+  --border: #cbb98f;
+  --ink: #1d1a16;
+  --text: #1d1a16;
+  --text-sub: #4a4132;
+  --text-muted: #8c7d62;
+  --accent: #a87a22;
+  --accent-bg: rgba(226, 169, 43, 0.16);
+  --bonus: #3f6fa8;
+  --bonus-bg: rgba(63, 111, 168, 0.10);
+  --danger: #b23a2a;
+  --danger-bg: rgba(178, 58, 42, 0.08);
+  --success: #5f8a3e;
+  --gold: #e2a92b;
+  --el-geest: #e8b92e;
+  --el-water: #3f6fa8;
+  --el-vuur: #c8402f;
+  --el-aarde: #5f8a3e;
+  --el-lucht: #8fb8d8;
+  --display: 'Cinzel', 'Trajan Pro', Georgia, serif;
   --nav-h: 52px;
 }
 
+/* Nachtthema in de sfeer van De Ster / De Maan: nachtblauw met gouden lijnen */
 [data-theme="dark"] {
-  --bg: #111110;
-  --bg-2: #1a1918;
-  --surface: #1f1e1d;
-  --border: #2e2c2a;
-  --text: #e8e3db;
-  --text-sub: #a8a29a;
-  --text-muted: #5a5450;
-  --accent: #c4a882;
-  --accent-bg: rgba(196, 168, 130, 0.10);
-  --bonus: #7d93c8;
-  --bonus-bg: rgba(125, 147, 200, 0.10);
-  --danger: #c28080;
-  --danger-bg: rgba(194, 128, 128, 0.10);
-  --success: #6aaa7e;
+  --bg: #10182b;
+  --bg-2: #162038;
+  --surface: #1a2540;
+  --border: #2f3d5f;
+  --ink: #d9b45a;
+  --text: #efe6cf;
+  --text-sub: #bdb39b;
+  --text-muted: #7d8099;
+  --accent: #d9b45a;
+  --accent-bg: rgba(217, 180, 90, 0.14);
+  --bonus: #8fb3e0;
+  --bonus-bg: rgba(143, 179, 224, 0.12);
+  --danger: #e07a6a;
+  --danger-bg: rgba(224, 122, 106, 0.12);
+  --success: #8db870;
+  --gold: #d9b45a;
+  --el-geest: #e8c35e;
+  --el-water: #6f9fd8;
+  --el-vuur: #e0634f;
+  --el-aarde: #86b062;
+  --el-lucht: #a9cde6;
 }
 
 /* ── Base ── */
@@ -120,9 +137,10 @@ main {
 }
 
 .screen-header h1 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: var(--display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
 }
 
 .screen-header .date-sub {
@@ -213,12 +231,97 @@ main {
 }
 
 .habit-section h2.persona-heading {
-  font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
-  font-size: 0.76rem;
-  font-weight: 900;
-  font-style: italic;
-  letter-spacing: 0.05em;
+  font-family: var(--display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
   color: var(--accent);
+}
+
+/* ── Tarotkaarten (één per element) ── */
+.tarot-card[data-element="geest"] { --el: var(--el-geest); }
+.tarot-card[data-element="water"] { --el: var(--el-water); }
+.tarot-card[data-element="vuur"]  { --el: var(--el-vuur); }
+.tarot-card[data-element="aarde"] { --el: var(--el-aarde); }
+.tarot-card[data-element="lucht"] { --el: var(--el-lucht); }
+
+.tarot-card {
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  padding: 8px 10px 12px;
+  box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--ink);
+}
+
+.tarot-numeral {
+  font-family: var(--display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-align: center;
+  color: var(--text-sub);
+  margin: 4px 0 8px;
+}
+
+.tarot-card .habit-grid {
+  background: var(--ink);
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+}
+
+.tarot-card .habit-btn.active,
+.tarot-card .habit-btn.essential.active {
+  background: color-mix(in srgb, var(--el) 24%, var(--surface));
+  color: var(--text);
+}
+
+.tarot-card .habit-check { border-color: var(--ink); }
+
+.tarot-card .habit-btn.active .habit-check,
+.tarot-card .habit-btn.essential.active .habit-check {
+  background: var(--el);
+  border-color: var(--ink);
+  color: #1d1a16;
+}
+
+.tarot-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  margin: 12px auto 0;
+  padding: 5px 16px 5px 6px;
+  background: var(--bg);
+  border: 1.5px solid var(--ink);
+}
+
+.habit-section .tarot-banner h2.persona-heading {
+  margin: 0;
+  font-size: 0.9rem;
+  letter-spacing: 0.24em;
+  color: var(--text);
+}
+
+.suit-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--el);
+  border: 1.5px solid var(--ink);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.suit-badge svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: #1d1a16;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* ── Habit Buttons ── */
@@ -613,27 +716,28 @@ textarea::placeholder { color: var(--text-muted); }
   max-width: 230px;
   margin: 0 auto;
   position: relative;
-  filter: drop-shadow(0 0 8px rgba(246,199,0,0.18));
 }
 
-.star-grid { fill: none; stroke: var(--text-muted); stroke-width: 1; opacity: 0.35; }
-.star-axis { stroke: var(--text-muted); stroke-width: 1; opacity: 0.45; }
+.star-coin { fill: var(--gold); fill-opacity: 0.22; stroke: var(--ink); stroke-width: 1.6; }
+.star-coin-ring { fill: none; stroke: var(--ink); stroke-width: 0.8; }
+.star-grid { fill: none; stroke: var(--ink); stroke-width: 0.7; opacity: 0.3; }
+.star-axis { stroke: var(--ink); stroke-width: 0.7; opacity: 0.35; }
 
 .star-facet {
-  stroke: rgba(80,48,0,0.5);
-  stroke-width: 0.6;
+  stroke: var(--ink);
+  stroke-width: 0.5;
   stroke-linejoin: round;
 }
 
 .star-outline {
   fill: none;
-  stroke: #4a3000;
-  stroke-width: 1.3;
+  stroke: var(--ink);
+  stroke-width: 1.5;
   stroke-linejoin: round;
   transition: all 0.3s ease;
 }
 
-/* ── Stat-tags (gele stickers rond de ster) ── */
+/* ── Element-banners rond de ster ── */
 .star-chip {
   position: absolute;
   z-index: 3;
@@ -644,29 +748,29 @@ textarea::placeholder { color: var(--text-muted); }
 .star-chip-tag {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: #f6c700;
-  color: #111;
-  clip-path: polygon(6% 0, 100% 10%, 94% 100%, 0 90%);
-  padding: 5px 12px 6px 9px;
-  font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
-  font-size: 0.88rem;
-  font-weight: 900;
-  font-style: italic;
-  letter-spacing: 0.01em;
+  gap: 6px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1.5px solid var(--ink);
+  padding: 3px 8px 3px 4px;
+  font-family: var(--display);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .star-chip-rank {
-  background: #111;
-  color: #f6c700;
+  background: var(--el);
+  color: #1d1a16;
+  border: 1.2px solid var(--ink);
   border-radius: 50%;
-  width: 17px; height: 17px;
-  font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
-  font-size: 0.75rem;
-  font-weight: 800;
-  font-style: normal;
+  width: 18px; height: 18px;
+  font-family: var(--display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -674,21 +778,17 @@ textarea::placeholder { color: var(--text-muted); }
 }
 
 .star-chip-frac {
-  font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-family: var(--display);
+  font-size: 0.72rem;
+  font-weight: 500;
   color: var(--text-muted);
   margin-top: 4px;
 }
 
 .star-chip-max {
-  color: #ffde59;
-  font-family: 'Optima Nova Black', 'Optima', 'Arsenal', -apple-system, sans-serif;
-  font-weight: 900;
-  font-style: normal;
-  font-size: 0.84rem;
-  letter-spacing: 0.03em;
-  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.14em;
 }
 
 /* ── Mood distribution ── */

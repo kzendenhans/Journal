@@ -4,8 +4,8 @@
   "description": "Persoonlijk dagelijks dashboard",
   "start_url": "/Journal/",
   "display": "standalone",
-  "background_color": "#f6f3ee",
-  "theme_color": "#f6f3ee",
+  "background_color": "#efe4c8",
+  "theme_color": "#efe4c8",
   "orientation": "portrait",
   "icons": [
     {

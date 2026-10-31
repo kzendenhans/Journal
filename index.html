@@ -5,17 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#f6f3ee" id="theme-color-meta">
+  <meta name="theme-color" content="#efe4c8" id="theme-color-meta">
   <title>Dagboek</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon2.png">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Arsenal:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=163">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=164">
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="suit-geest" viewBox="0 0 24 24"><path d="M12 12c-2-2.7-3.6-4-5.5-4a4 4 0 0 0 0 8c1.9 0 3.5-1.3 5.5-4zm0 0c2 2.7 3.6 4 5.5 4a4 4 0 0 0 0-8c-1.9 0-3.5 1.3-5.5 4z"/></symbol>
+  <symbol id="suit-water" viewBox="0 0 24 24"><path d="M6 4h12c0 5-2.7 8-6 8s-6-3-6-8zM12 12v6M8 20h8"/></symbol>
+  <symbol id="suit-vuur" viewBox="0 0 24 24"><path d="M6 20L17.5 4.5M13.8 9.6c1.4-.4 2.5 0 3.1 1M10.6 13.9c-1.4-.2-2.4.4-2.8 1.4M15.9 6.7c.1-1.3.9-2.1 2.1-2.3"/></symbol>
+  <symbol id="suit-lucht" viewBox="0 0 24 24"><path d="M12 2.5l1.5 2.5V15h-3V5zM7.5 15h9M12 15v4.5"/><circle cx="12" cy="20.8" r="1.2"/></symbol>
+  <symbol id="suit-aarde" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M12 4L16.7 18.47 4.39 9.53H19.61L7.3 18.47Z"/></symbol>
+</svg>
 <div id="app">
   <main id="main">
 
@@ -70,54 +77,59 @@
         <div id="weight-warning" style="display:none"></div>
       </div>
 
-      <!-- Knowledge -->
-      <div class="habit-section">
-        <h2 class="persona-heading">Knowledge</h2>
-        <div class="habit-grid">
-          <button class="habit-btn" data-key="geleest"><span class="habit-check"></span><span class="habit-label">Gelezen<span class="habit-hint">1 pagina volstaat</span></span></button>
-          <button class="habit-btn" data-key="geschreven"><span class="habit-check"></span>Geschreven</button>
-          <button class="habit-btn" data-key="opleiding_gevolgd"><span class="habit-check"></span>Opleiding gevolgd</button>
-        </div>
-      </div>
-
-      <!-- Charm -->
-      <div class="habit-section">
-        <h2 class="persona-heading">Charm</h2>
-        <div class="habit-grid">
-          <button class="habit-btn" data-key="tijd_met_anderen"><span class="habit-check"></span>Tijd met anderen</button>
-          <button class="habit-btn" data-key="onbekende_aangesproken"><span class="habit-check"></span>Onbekende aangesproken</button>
-          <button class="habit-btn" data-key="geflirt"><span class="habit-check"></span>Geflirt</button>
-        </div>
-      </div>
-
-      <!-- Guts -->
-      <div class="habit-section">
-        <h2 class="persona-heading">Guts</h2>
-        <div class="habit-grid">
-          <button class="habit-btn" data-key="koude_douche"><span class="habit-check"></span>Koude douche</button>
-          <button class="habit-btn" data-key="comfort_zone_uitdaging"><span class="habit-check"></span>Comfort zone-uitdaging</button>
-          <button class="habit-btn essential" data-key="gym"><span class="habit-check"></span>Gym</button>
-        </div>
-      </div>
-
-      <!-- Kindness -->
-      <div class="habit-section">
-        <h2 class="persona-heading">Kindness</h2>
+      <!-- Geest -->
+      <div class="habit-section tarot-card" data-element="geest">
+        <div class="tarot-numeral">I</div>
         <div class="habit-grid">
           <button class="habit-btn" data-key="gemediteerd"><span class="habit-check"></span><span class="habit-label">Gemediteerd<span class="habit-hint">1 minuut volstaat</span></span></button>
-          <button class="habit-btn" data-key="iemand_geholpen"><span class="habit-check"></span>Iemand geholpen</button>
+          <button class="habit-btn" data-key="geschreven"><span class="habit-check"></span>Geschreven</button>
           <button class="habit-btn essential" data-key="stretch_routine"><span class="habit-check"></span>Stretch routine</button>
         </div>
+        <div class="tarot-banner"><span class="suit-badge"><svg viewBox="0 0 24 24"><use href="#suit-geest"/></svg></span><h2 class="persona-heading">Geest</h2></div>
       </div>
 
-      <!-- Proficiency -->
-      <div class="habit-section">
-        <h2 class="persona-heading">Proficiency</h2>
+      <!-- Water -->
+      <div class="habit-section tarot-card" data-element="water">
+        <div class="tarot-numeral">II</div>
         <div class="habit-grid">
+          <button class="habit-btn" data-key="tijd_met_anderen"><span class="habit-check"></span>Tijd met anderen</button>
+          <button class="habit-btn" data-key="geflirt"><span class="habit-check"></span>Geflirt</button>
+          <button class="habit-btn" data-key="iemand_geholpen"><span class="habit-check"></span>Iemand geholpen</button>
+        </div>
+        <div class="tarot-banner"><span class="suit-badge"><svg viewBox="0 0 24 24"><use href="#suit-water"/></svg></span><h2 class="persona-heading">Water</h2></div>
+      </div>
+
+      <!-- Vuur -->
+      <div class="habit-section tarot-card" data-element="vuur">
+        <div class="tarot-numeral">III</div>
+        <div class="habit-grid">
+          <button class="habit-btn" data-key="gespeeld"><span class="habit-check"></span><span class="habit-label">Gespeeld<span class="habit-hint">1 minuut volstaat</span></span></button>
+          <button class="habit-btn" data-key="koude_douche"><span class="habit-check"></span>Koude douche</button>
+          <button class="habit-btn" data-key="comfort_zone_uitdaging"><span class="habit-check"></span>Comfort zone-uitdaging</button>
+        </div>
+        <div class="tarot-banner"><span class="suit-badge"><svg viewBox="0 0 24 24"><use href="#suit-vuur"/></svg></span><h2 class="persona-heading">Vuur</h2></div>
+      </div>
+
+      <!-- Aarde -->
+      <div class="habit-section tarot-card" data-element="aarde">
+        <div class="tarot-numeral">IV</div>
+        <div class="habit-grid">
+          <button class="habit-btn essential" data-key="gym"><span class="habit-check"></span>Gym</button>
           <button class="habit-btn essential" data-key="gewerkt"><span class="habit-check"></span>Gewerkt</button>
           <button class="habit-btn essential" data-key="geklust"><span class="habit-check"></span>Geklust</button>
-          <button class="habit-btn" data-key="gespeeld"><span class="habit-check"></span><span class="habit-label">Gespeeld<span class="habit-hint">1 minuut volstaat</span></span></button>
         </div>
+        <div class="tarot-banner"><span class="suit-badge"><svg viewBox="0 0 24 24"><use href="#suit-aarde"/></svg></span><h2 class="persona-heading">Aarde</h2></div>
+      </div>
+
+      <!-- Lucht -->
+      <div class="habit-section tarot-card" data-element="lucht">
+        <div class="tarot-numeral">V</div>
+        <div class="habit-grid">
+          <button class="habit-btn" data-key="geleest"><span class="habit-check"></span><span class="habit-label">Gelezen<span class="habit-hint">1 pagina volstaat</span></span></button>
+          <button class="habit-btn" data-key="opleiding_gevolgd"><span class="habit-check"></span>Opleiding gevolgd</button>
+          <button class="habit-btn" data-key="onbekende_aangesproken"><span class="habit-check"></span>Onbekende aangesproken</button>
+        </div>
+        <div class="tarot-banner"><span class="suit-badge"><svg viewBox="0 0 24 24"><use href="#suit-lucht"/></svg></span><h2 class="persona-heading">Lucht</h2></div>
       </div>
 
       <!-- Mood -->
@@ -315,7 +327,7 @@
       <div class="settings-section">
         <h2>Over</h2>
         <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.6">
-          Dagboek v1.63<br>
+          Dagboek v1.64<br>
           Data wordt opgeslagen in Supabase.
         </p>
       </div>
@@ -346,6 +358,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="app.js?v=163"></script>
+<script src="app.js?v=164"></script>
 </body>
 </html>
