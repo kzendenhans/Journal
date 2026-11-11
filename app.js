@@ -4,10 +4,8 @@
 const cfg = {
   get sbUrl()  { return localStorage.getItem('sb_url') || ''; },
   get sbKey()  { return localStorage.getItem('sb_key') || ''; },
-  get geminiKey() { return localStorage.getItem('gemini_key') || ''; },
   set sbUrl(v)  { localStorage.setItem('sb_url', v); },
   set sbKey(v)  { localStorage.setItem('sb_key', v); },
-  set geminiKey(v) { localStorage.setItem('gemini_key', v); },
 };
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -155,7 +153,7 @@ function navigate(screenId) {
   navItem.classList.add('active');
 
   if (screenId === 'insights') loadInsights();
-  if (screenId === 'reflections') renderReflectionsScreen();
+  if (screenId === 'voeding') Voeding.open();
   if (screenId === 'settings') populateSettingsFields();
   if (screenId === 'tarot') loadTarotScreen();
 
@@ -983,177 +981,10 @@ function renderInsights(rows, allRows, from, to, period) {
   `;
 }
 
-// ── Reflecties opslaan / weergeven ───────────────────────────────────────────
-function getStoredReflections() {
-  try { return JSON.parse(localStorage.getItem('reflections_log') || '[]'); } catch { return []; }
-}
-
-function saveReflection(date, text) {
-  const list = getStoredReflections().filter(r => r.date !== date);
-  list.unshift({ date, text });
-  localStorage.setItem('reflections_log', JSON.stringify(list));
-}
-
-function formatReflectionText(text) {
-  return '<p>' + text.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
-}
-
-function renderReflectionsScreen() {
-  const today = todayStr();
-  const list = getStoredReflections();
-  const todayEntry = list.find(r => r.date === today);
-  const past = list.filter(r => r.date !== today);
-
-  const btn = document.getElementById('generate-narrative-btn');
-  const cardEl = document.getElementById('narrative-card');
-  const archiveEl = document.getElementById('narrative-archive');
-  if (!btn || !cardEl) return;
-
-  if (todayEntry) {
-    btn.disabled = true;
-    btn.textContent = 'Reflectie voor vandaag reeds gegenereerd';
-    cardEl.style.display = 'block';
-    cardEl.innerHTML = `
-      <div class="narrative-text">${formatReflectionText(todayEntry.text)}</div>
-      <p class="narrative-meta">Gegenereerd op ${formatDateNL(today)}</p>`;
-  } else {
-    btn.disabled = false;
-    btn.textContent = 'Genereer reflectie';
-    cardEl.style.display = 'none';
-    cardEl.innerHTML = '';
-  }
-
-  if (!archiveEl) return;
-  if (!past.length) { archiveEl.innerHTML = ''; return; }
-
-  archiveEl.innerHTML = `<h3 class="reflection-archive-title">Eerdere reflecties</h3>` +
-    past.map(r => `
-      <details class="reflection-item">
-        <summary class="reflection-summary">
-          <span class="reflection-date">${formatDateNL(r.date)}</span>
-          <span class="reflection-chevron">›</span>
-        </summary>
-        <div class="reflection-body">
-          <div class="narrative-text">${formatReflectionText(r.text)}</div>
-        </div>
-      </details>`).join('');
-}
-
-// ── Claude AI narratieve reflectie ────────────────────────────────────────────
-async function generateInsightNarrative() {
-  if (!cfg.geminiKey) {
-    showToast('Configureer eerst de Groq API key in Instellingen');
-    navigate('settings');
-    return;
-  }
-  if (!cfg.sbUrl || !cfg.sbKey) {
-    showToast('Supabase niet geconfigureerd');
-    return;
-  }
-
-  const btn = document.getElementById('generate-narrative-btn');
-  const cardEl = document.getElementById('narrative-card');
-  btn.disabled = true;
-  btn.textContent = 'Bezig…';
-  cardEl.style.display = 'block';
-  cardEl.innerHTML = '<div class="narrative-loading">Reflectie genereren…</div>';
-
-  let _generated = false;
-  try {
-    const to = todayStr();
-    const from = offsetDate(to, -13);
-    const rows = await sbFetch(`/habit_entries?date=gte.${from}&date=lte.${to}&order=date.asc`);
-
-    // Kalenderdata via lokale server (draait op Mac)
-    let calendarEvents = [];
-    try {
-      const calRes = await fetch(`http://localhost:7878/calendar?from=${from}&to=${to}`);
-      if (calRes.ok) calendarEvents = await calRes.json();
-    } catch { /* server niet actief, verder zonder kalender */ }
-
-    const dayNames = ['zo','ma','di','wo','do','vr','za'];
-    const bool = v => v ? '✓' : '-';
-
-    // Build habit data lines
-    const habitLines = [];
-    for (let i = 0; i < 14; i++) {
-      const d = offsetDate(from, i);
-      const [y,mo,dy] = d.split('-');
-      const dt = new Date(+y, +mo-1, +dy);
-      const label = `${dy}-${mo} (${dayNames[dt.getDay()]})`;
-      const r = (rows || []).find(x => x.date === d) || {};
-      habitLines.push(
-        `${label}: gym:${bool(r.gym)} gew:${bool(r.gewerkt)} schr:${bool(r.geschreven)} gel:${bool(r.geleest)} med:${bool(r.gemediteerd)} soc:${bool(r.tijd_met_anderen)} kl:${bool(r.geklust)} sp:${bool(r.gespeeld)} | slaap:${r.slaap != null ? r.slaap + 'u' : '?'} gewicht:${r.gewicht != null ? r.gewicht + 'kg' : '?'} stemming:${r.mood_emoji || '?'}`
-      );
-    }
-
-    // Kalenderregels per dag opbouwen
-    const calLines = [];
-    for (let i = 0; i < 14; i++) {
-      const d = offsetDate(from, i);
-      const [y,mo,dy] = d.split('-');
-      const dt = new Date(+y, +mo-1, +dy);
-      const label = `${dy}-${mo} (${dayNames[dt.getDay()]})`;
-      const dayEvents = calendarEvents.filter(e => e.datetime.startsWith(d));
-      if (dayEvents.length) {
-        calLines.push(`${label}: ${dayEvents.map(e => `${e.datetime.slice(11)} ${e.title} (${e.calendar})`).join(', ')}`);
-      }
-    }
-
-    const prompt = `Je bent een persoonlijke reflectieassistent voor Hans, een Belgische psycholoog. Analyseer zijn gewoonte- en welzijnsdata van de afgelopen 14 dagen. Schrijf een zakelijke reflectie in het Nederlands — geen aanmoedigingen, geen lyrisch taalgebruik. Spreek hem aan met "je".
-
-HABITDATA (${from} t/m ${to}):
-Kolommen: gym | gewerkt (gew) | geschreven (schr) | gelezen (gel) | gemediteerd (med) | sociaal (soc) | geklust (kl) | gespeeld (sp) | te veel/weinig gegeten (eten) | doomscrolled (doom) | slaapuren | gewicht | stemming
-${habitLines.join('\n')}
-
-${calLines.length ? `AGENDA:\n${calLines.join('\n')}` : 'AGENDA: geen kalendergegevens beschikbaar'}
-
-Schrijf een reflectie van 3 korte alinea's (max. 250 woorden totaal):
-1. Opvallende patronen of trends in de data.
-2. Verbanden tussen variabelen (bijv. slaap ↔ stemming, gewoonten ↔ regelmaat).
-3. Één concrete observatie voor de komende week.`;
-
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'authorization': `Bearer ${cfg.geminiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b',
-        max_tokens: 800,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `HTTP ${res.status}`);
-    }
-
-    const data = await res.json();
-    const rawText = (data.choices?.[0]?.message?.content || '').trim();
-    if (!rawText) throw new Error('Geen antwoord ontvangen');
-    saveReflection(to, rawText);
-    _generated = true;
-
-  } catch(e) {
-    cardEl.innerHTML = `<div class="narrative-error">⚠ ${e.message}</div>`;
-  } finally {
-    if (_generated) {
-      renderReflectionsScreen();
-    } else {
-      btn.disabled = false;
-      btn.textContent = 'Genereer reflectie';
-    }
-  }
-}
-
 // ── Settings Screen ───────────────────────────────────────────────────────────
 function populateSettingsFields() {
   document.getElementById('sb-url').value = cfg.sbUrl;
   document.getElementById('sb-key').value = cfg.sbKey;
-  document.getElementById('gemini-key').value = cfg.geminiKey;
   updateNotificationStatus();
   renderSensorSection();
 }
@@ -1239,29 +1070,6 @@ function saveSupabase() {
   loadCheckinForDate(state.date);
 }
 
-function saveGeminiKey() {
-  cfg.geminiKey = document.getElementById('gemini-key').value.trim();
-  showToast('✓ API key opgeslagen');
-}
-
-async function testGroqKey() {
-  const statusEl = document.getElementById('groq-status');
-  cfg.geminiKey = document.getElementById('gemini-key').value.trim();
-  if (!cfg.geminiKey) { showToast('Voer eerst een API key in'); return; }
-  statusEl.innerHTML = `<span class="status-dot idle"></span> Testen…`;
-  try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'authorization': `Bearer ${cfg.geminiKey}` },
-      body: JSON.stringify({ model: 'openai/gpt-oss-120b', max_tokens: 10, messages: [{ role: 'user', content: 'Zeg: OK' }] }),
-    });
-    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
-    statusEl.innerHTML = `<span class="status-dot ok"></span> Verbinding OK`;
-  } catch(e) {
-    statusEl.innerHTML = `<span class="status-dot err"></span> Fout: ${e.message}`;
-  }
-}
-
 async function testSupabase() {
   const statusEl = document.getElementById('sb-status');
   statusEl.innerHTML = `<span class="status-dot idle"></span> Testen…`;
@@ -1280,7 +1088,6 @@ function exportSettings() {
   const data = {
     sb_url: cfg.sbUrl,
     sb_key: cfg.sbKey,
-    gemini_key: cfg.geminiKey,
     notifications_enabled: localStorage.getItem('notifications_enabled') || 'false',
   };
   const json = JSON.stringify(data);
@@ -1313,7 +1120,6 @@ function importSettings() {
     const data = JSON.parse(raw);
     if (data.sb_url !== undefined) cfg.sbUrl = data.sb_url;
     if (data.sb_key !== undefined) cfg.sbKey = data.sb_key;
-    if (data.gemini_key !== undefined) cfg.geminiKey = data.gemini_key;
     if (data.notifications_enabled !== undefined) localStorage.setItem('notifications_enabled', data.notifications_enabled);
     document.getElementById('backup-input').value = '';
     populateSettingsFields();
@@ -1711,7 +1517,6 @@ function restoreFromBookmark() {
     const data = JSON.parse(json);
     if (data.sb_url !== undefined) cfg.sbUrl = data.sb_url;
     if (data.sb_key !== undefined) cfg.sbKey = data.sb_key;
-    if (data.gemini_key !== undefined) cfg.geminiKey = data.gemini_key;
     if (data.notifications_enabled !== undefined) localStorage.setItem('notifications_enabled', data.notifications_enabled);
     history.replaceState(null, '', location.pathname);
     showToast('✓ Instellingen hersteld via bladwijzer', 3500);

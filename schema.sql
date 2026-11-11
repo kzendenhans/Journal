@@ -56,3 +56,25 @@ create table if not exists tarot_draws (
 
 alter table tarot_draws enable row level security;
 create policy "Public access" on tarot_draws for all using (true) with check (true);
+
+-- ── Voeding (v1.65) ─────────────────────────────────────────────────────────
+create table if not exists food_days (
+  date date primary key,
+  entries jsonb not null default '{}',
+  extras jsonb not null default '[]',
+  plan jsonb not null default '{}',
+  flags jsonb not null default '{}',
+  updated_at timestamptz default now()
+);
+
+alter table food_days enable row level security;
+create policy "Public access" on food_days for all using (true) with check (true);
+
+create table if not exists food_settings (
+  id int primary key default 1,
+  data jsonb not null default '{}',
+  updated_at timestamptz default now()
+);
+
+alter table food_settings enable row level security;
+create policy "Public access" on food_settings for all using (true) with check (true);

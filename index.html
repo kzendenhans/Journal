@@ -8,12 +8,13 @@
   <meta name="theme-color" content="#efe4c8" id="theme-color-meta">
   <title>Dagboek</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon2.png?v=164e">
+  <link rel="apple-touch-icon" href="icon2.png?v=166b">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=164e">
+  <link rel="stylesheet" href="style.css?v=166b">
+  <link rel="stylesheet" href="voeding.css?v=166b">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -229,19 +230,91 @@
       </div>
     </section>
 
-    <!-- ── Reflections Screen ── -->
-    <section id="screen-reflections" class="screen">
+    <!-- ── Voeding Screen ── -->
+    <section id="screen-voeding" class="screen">
       <div class="screen-header">
-        <h1>Reflecties</h1>
-        <button class="theme-btn theme-toggle-btn" title="Dag/nacht">○</button>
+        <div>
+          <h1 id="vd-titel">Vandaag</h1>
+          <div class="date-sub" id="vd-datum"></div>
+        </div>
+        <div class="date-nav">
+          <button class="theme-btn theme-toggle-btn" title="Dag/nacht">○</button>
+          <button class="date-nav-btn today-btn" id="vd-btn-vandaag" data-vact="vandaag" hidden>Vandaag</button>
+          <button class="date-nav-btn" data-vact="prev" title="Vorige dag">‹</button>
+          <button class="date-nav-btn" data-vact="next" title="Volgende dag">›</button>
+        </div>
       </div>
-      <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:16px">
-        AI-reflectie op basis van je habitdata en agenda van de afgelopen 14 dagen.
-      </p>
-      <div id="narrative-section-main">
-        <button id="generate-narrative-btn" onclick="generateInsightNarrative()">Genereer reflectie</button>
-        <div id="narrative-card" style="display:none"></div>
-        <div id="narrative-archive"></div>
+      <div class="vd-tabs" role="tablist">
+        <button data-vtab="dag" class="active">Dag</button>
+        <button data-vtab="week">Week</button>
+        <button data-vtab="menu">Menu's</button>
+        <button data-vtab="shop">Boodschappen</button>
+      </div>
+      <div id="vd-banner"></div>
+
+      <div class="vd-pane" id="vd-dag">
+        <div id="vd-training"></div>
+        <div id="vd-nudge"></div>
+        <div id="vd-sum"></div>
+        <div id="vd-meals"></div>
+        <div id="vd-extras"></div>
+        <button class="vd-add" data-vact="extra">+ Iets extra gegeten</button>
+      </div>
+
+      <div class="vd-pane" id="vd-week" hidden></div>
+
+      <div class="vd-pane" id="vd-menu-pane" hidden>
+        <div id="vd-menu"></div>
+        <details class="vd-card vd-panel">
+          <summary>+ Eigen variant</summary>
+          <form id="vd-form-eigen" class="vd-form">
+            <label>Maaltijd<select id="vd-e-slot"></select></label>
+            <label>Naam<input id="vd-e-naam" required placeholder="bv. Kip-pasta met groenten"></label>
+            <div class="vd-row4">
+              <label>KH (g)<input id="vd-e-kh" type="number" step="0.1" min="0" required inputmode="decimal"></label>
+              <label>Eiwit (g)<input id="vd-e-eiwit" type="number" step="0.1" min="0" required inputmode="decimal"></label>
+              <label>Vet (g)<input id="vd-e-vet" type="number" step="0.1" min="0" required inputmode="decimal"></label>
+              <label>Verz. (g)<input id="vd-e-vz" type="number" step="0.1" min="0" required inputmode="decimal"></label>
+            </div>
+            <label>Ingrediënten, één per lijn<textarea id="vd-e-ing" rows="4" placeholder="150 g kipfilet&#10;60 g volkorenpasta&#10;1 el olijfolie"></textarea></label>
+            <button class="save-btn" type="submit">Variant opslaan</button>
+          </form>
+        </details>
+        <details class="vd-card vd-panel">
+          <summary>Doelen en schema</summary>
+          <form id="vd-form-inst" class="vd-form">
+            <div class="vd-row2">
+              <label>Eiwit per dag (g)<input id="vd-i-eiwit" type="number" min="0" inputmode="numeric"></label>
+              <label>Max. verzadigd vet (g)<input id="vd-i-vz" type="number" min="0" inputmode="numeric"></label>
+            </div>
+            <label>Energie per dag (kcal)<input id="vd-i-kcal" type="number" min="0" step="50" inputmode="numeric"></label>
+            <div class="vd-row2">
+              <label>Training van<input id="vd-i-tstart" type="time"></label>
+              <label>tot<input id="vd-i-tend" type="time"></label>
+            </div>
+            <p class="vd-sub">Vaste cardio</p>
+            <div class="vd-row2">
+              <label>Dag<select id="vd-c-dag"></select></label>
+              <label>Wat<input id="vd-c-naam" placeholder="bv. Zwemmen"></label>
+              <label>Van<input id="vd-c-start" type="time"></label>
+              <label>Tot<input id="vd-c-end" type="time"></label>
+            </div>
+            <p class="vd-sub">Trainingsschema</p>
+            <div id="vd-i-schema" class="vd-row2"></div>
+            <p class="vd-sub">Tijdstippen maaltijden</p>
+            <div id="vd-i-tijden" class="vd-row2"></div>
+            <button class="save-btn" type="submit">Opslaan</button>
+          </form>
+        </details>
+      </div>
+
+      <div class="vd-pane" id="vd-shop-pane" hidden>
+        <div class="vd-shopbar">
+          <label>Boodschappen op<input type="date" id="vd-shop-from"></label>
+          <label>voor<select id="vd-shop-days"><option value="3">3 dagen</option><option value="4">4 dagen</option><option value="5">5 dagen</option><option value="6">6 dagen</option><option value="7">7 dagen</option><option value="10">10 dagen</option><option value="14">14 dagen</option></select></label>
+        </div>
+        <div class="vd-xhead"><p class="vd-sub" id="vd-shop-sub" style="margin:0"></p><button class="vd-btn" data-vact="shopreset">Vinkjes wissen</button></div>
+        <div id="vd-shop"></div>
       </div>
     </section>
 
@@ -302,22 +375,6 @@
       </div>
 
       <div class="settings-section">
-        <h2>Groq AI (gratis)</h2>
-        <label>API Key</label>
-        <input type="text" id="gemini-key" placeholder="gsk_…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-        <p style="font-size:0.76rem;color:var(--text-muted);line-height:1.5;margin-top:8px">
-          Gratis key via <strong>console.groq.com</strong> → API Keys → Create API key. Geen kredietkaart vereist.
-        </p>
-        <div class="connection-status" id="groq-status" style="margin-top:10px">
-          <span class="status-dot idle"></span> Niet getest
-        </div>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="save-btn" style="padding:12px" onclick="saveGeminiKey()">Opslaan</button>
-          <button class="btn-secondary" style="flex:1;padding:12px" onclick="testGroqKey()">Test</button>
-        </div>
-      </div>
-
-      <div class="settings-section">
         <h2>Backup</h2>
         <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:14px">
           Sla je instellingen op zodat je ze na een reset snel kunt herstellen.
@@ -339,7 +396,7 @@
       <div class="settings-section">
         <h2>Over</h2>
         <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.6">
-          Dagboek v1.64<br>
+          Dagboek v1.65<br>
           Data wordt opgeslagen in Supabase.
         </p>
       </div>
@@ -357,9 +414,9 @@
       <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg></span>
       <span class="nav-label">Inzichten</span>
     </button>
-    <button class="nav-item" data-screen="reflections">
-      <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
-      <span class="nav-label">Reflecties</span>
+    <button class="nav-item" data-screen="voeding">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M7 3v8a2 2 0 002 2v8"/><path d="M5 3v5a2 2 0 002 2"/><path d="M9 3v5a2 2 0 01-2 2"/><path d="M17 21V3c-2 1-3.5 3.5-3.5 7s1.5 4 3.5 4"/></svg></span>
+      <span class="nav-label">Voeding</span>
     </button>
     <button class="nav-item" data-screen="settings">
       <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2.5" fill="var(--bg)"/><circle cx="15" cy="12" r="2.5" fill="var(--bg)"/><circle cx="10" cy="18" r="2.5" fill="var(--bg)"/></svg></span>
@@ -370,7 +427,42 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="tarot.js?v=164e"></script>
-<script src="app.js?v=164e"></script>
+<dialog id="vd-pick" class="vd-dlg">
+  <div class="vd-dlg-in">
+    <div class="vd-xhead"><h3 id="vd-pick-title">Opties</h3><button class="vd-btn" type="button" data-close aria-label="Sluiten">✕</button></div>
+    <p id="vd-pick-why" class="vd-sub" style="margin:0"></p>
+    <div id="vd-pick-list" class="vd-foods"></div>
+  </div>
+</dialog>
+
+<dialog id="vd-dlg" class="vd-dlg">
+  <div class="vd-dlg-in">
+    <div class="vd-xhead"><h3>Iets extra</h3><button class="vd-btn" type="button" data-close aria-label="Sluiten">✕</button></div>
+    <input type="search" id="vd-x-zoek" class="vd-search" placeholder="Zoek, bv. kip, skyr, banaan" autocomplete="off" enterkeyhint="done" aria-label="Zoek voeding">
+    <div id="vd-x-qty" class="vd-qty" role="group" aria-label="Hoeveelheid">
+      <button type="button" data-q="0.5">½×</button><button type="button" data-q="1" class="on">1×</button><button type="button" data-q="1.5">1½×</button><button type="button" data-q="2">2×</button><button type="button" data-q="3">3×</button>
+    </div>
+    <div id="vd-x-lijst" class="vd-foods"></div>
+    <details id="vd-x-eigen">
+      <summary>Zelf invullen</summary>
+      <div class="vd-form">
+        <label>Wat<input id="vd-x-naam" placeholder="bv. stuk taart"></label>
+        <div class="vd-row4">
+          <label>KH<input id="vd-x-kh" type="number" step="0.1" min="0" inputmode="decimal"></label>
+          <label>Eiwit<input id="vd-x-eiwit" type="number" step="0.1" min="0" inputmode="decimal"></label>
+          <label>Vet<input id="vd-x-vet" type="number" step="0.1" min="0" inputmode="decimal"></label>
+          <label>Verz.<input id="vd-x-vz" type="number" step="0.1" min="0" inputmode="decimal"></label>
+        </div>
+        <label class="vd-check"><input type="checkbox" id="vd-x-hypo"> Hypo-correctie</label>
+        <button class="save-btn" type="button" id="vd-x-add">Toevoegen</button>
+      </div>
+    </details>
+  </div>
+</dialog>
+
+<script src="tarot.js?v=166b"></script>
+<script src="app.js?v=166b"></script>
+<script src="voeding-data.js?v=166b"></script>
+<script src="voeding.js?v=166b"></script>
 </body>
 </html>
