@@ -114,8 +114,8 @@ const VOEDING_DATA = (() => {
     // ── Lunch
     { id: 'l3', slot: 'lunch', name: 'Volkorenbrood met eieren, champignons en kwark', eiwit: 35, kh: 51, vet: 19.4, vz: 4.4,
       ing: [[3,'sn','Volkorenbrood','K'],[2,'st','Ei','Z'],[60,'g','Champignons','G'],[1,'st','Tomaat','G'],[30,'g','Spinazie (diepvries)','G'],[100,'g','Magere kwark','Z'],[1,'tl','Koolzaadolie','N']] },
-    { id: 'l4', slot: 'lunch', name: 'Volkorenbrood met 1 ei, extra kwark en champignons', eiwit: 38, kh: 54.5, vet: 13.9, vz: 2.7,
-      ing: [[3,'sn','Volkorenbrood','K'],[1,'st','Ei','Z'],[200,'g','Magere kwark','Z'],[60,'g','Champignons','G'],[1,'st','Tomaat','G'],[30,'g','Spinazie (diepvries)','G'],[1,'tl','Koolzaadolie','N']] },
+    { id: 'l4', slot: 'lunch', name: 'Volkorenbrood met 2 eieren, extra kwark en champignons', eiwit: 45, kh: 54.5, vet: 19.4, vz: 4.3,
+      ing: [[3,'sn','Volkorenbrood','K'],[2,'st','Ei','Z'],[200,'g','Magere kwark','Z'],[60,'g','Champignons','G'],[1,'st','Tomaat','G'],[30,'g','Spinazie (diepvries)','G'],[1,'tl','Koolzaadolie','N']] },
     { id: 'l2', slot: 'lunch', name: 'Linzensalade met tonijn', eiwit: 43, kh: 34, vet: 12, vz: 1.9,
       ing: [[150,'g','Linzen (blik)','K'],[1,'blik','Tonijn op water','V'],[1,'st','Tomaat','G'],[0.25,'st','Komkommer','G'],[0.5,'st','Ui','G'],[1,'el','Koolzaadolie','N']] },
 
